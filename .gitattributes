@@ -1,0 +1,128 @@
+# Sources
+*.c     text diff=cpp
+*.cc    text diff=cpp
+*.cxx   text diff=cpp
+*.cpp   text diff=cpp
+*.c++   text diff=cpp
+*.hpp   text diff=cpp
+*.h     text diff=cpp
+*.h++   text diff=cpp
+*.hh    text diff=cpp
+*.rs    text
+
+# Compiled Object files
+*.slo   binary
+*.lo    binary
+*.o     binary
+*.obj   binary
+
+# Precompiled Headers
+*.gch   binary
+*.pch   binary
+
+# Compiled Dynamic libraries
+*.so    binary
+*.dylib binary
+*.dll   binary
+
+# Compiled Static libraries
+*.lai   binary
+*.la    binary
+*.a     binary
+*.lib   binary
+
+# Executables
+*.exe   binary
+*.out   binary
+*.app   binary
+
+# 3D models
+*.3dm                binary
+*.3ds                binary
+*.blend              binary
+*.c4d                binary
+*.collada            binary
+*.dae                binary
+*.dxf                binary
+*.FBX                binary
+*.fbx                binary
+*.jas                binary
+*.lws                binary
+*.lxo                binary
+*.ma                 binary
+*.max                binary
+*.mb                 binary
+*.obj                binary
+*.ply                binary
+*.skp                binary
+*.stl                binary
+*.ztl                binary
+*.gltf               binary
+*.bin                binary
+
+# Audio
+*.aif                binary
+*.aiff               binary
+*.it                 binary
+*.mod                binary
+*.mp3                binary
+*.ogg                binary
+*.s3m                binary
+*.wav                binary
+*.xm                 binary
+
+# Video
+*.asf                binary
+*.avi                binary
+*.flv                binary
+*.mov                binary
+*.mp4                binary
+*.mpeg               binary
+*.mpg                binary
+*.ogv                binary
+*.wmv                binary
+
+# Images
+*.bmp                binary
+*.exr                binary
+*.gif                binary
+*.hdr                binary
+*.iff                binary
+*.jpeg               binary
+*.jpg                binary
+*.pict               binary
+*.png                binary
+*.psd                binary
+*.tga                binary
+*.tif                binary
+*.tiff               binary
+*.webp               binary
+
+# Compressed Archive
+*.7z                binary
+*.bz2               binary
+*.gz                binary
+*.rar               binary
+*.tar               binary
+*.zip               binary
+
+# Compiled Dynamic Library
+*.dll               binary
+*.pdb               binary
+*.so                binary
+
+# Fonts
+*.otf               binary
+*.ttf               binary
+
+# Executable/Installer
+*.apk               binary
+*.exe               binary
+
+# Documents
+*.pdf               binary
+
+# ETC
+*.a                 binary
+*.rns               binary
+*.reason            binary

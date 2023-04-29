@@ -1,0 +1,41 @@
+[package]
+name = "terminal_ld53"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[profile.release]
+debug = true
+
+[dependencies]
+bytemuck = {version = "1.12", features = ["derive"]}
+anyhow = "1.0"
+pollster = "0.2"
+
+# Math
+cgmath = "0.18"
+oorandom = {version = "11.1.3", default-features = false}
+
+# Rendering
+winit = "0.28.3"
+wgpu = {version = "0.15", default-features = false, features = ["glsl", "wgsl"]}
+tobj = {version = "3.2.3", features = ["async"]}
+gltf = {version = "1.1.0"}
+image = {version = "0.24", default-features = false, features = ["png", "jpeg"]}
+
+# UI
+egui = "0.21.0"
+egui-winit = "0.21.1"
+egui-wgpu = {version = "0.21.0", features= ["winit"]}
+
+# Audio
+kira = {version = "0.7.3", default-features = false, features = ["cpal", "ogg"]}
+
+[dev-dependencies]
+
+[build-dependencies]
+anyhow = "1.0"
+fs_extra = "1.2"
+glob = "0.3"
+

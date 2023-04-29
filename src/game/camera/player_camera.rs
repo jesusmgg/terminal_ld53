@@ -1,6 +1,6 @@
 use std::time::Duration;
 
-use cgmath::{InnerSpace, Point3, Rad, Vector3};
+use cgmath::{InnerSpace, Point3, Rad, Vector3, Zero};
 use winit::event::VirtualKeyCode;
 
 use std::f32::consts::FRAC_PI_2;
@@ -15,18 +15,18 @@ const SAFE_FRAC_PI_2: f32 = FRAC_PI_2 - 0.0001;
 pub struct PlayerCameraController {
     input_left: f32,
     input_right: f32,
-    input_forward: f32,
     input_up: f32,
     input_down: f32,
+    input_roll: Rad<f32>,
 
     sensitivity: f32,
 
     speed: f32,
+    throttle: f32,
 
     pub position: Point3<f32>,
     pub yaw: Rad<f32>,
     pub pitch: Rad<f32>,
-    // TODO: support roll
 }
 
 impl PlayerCameraController {
@@ -40,14 +40,16 @@ impl PlayerCameraController {
         PlayerCameraController {
             input_left: 0.0,
             input_right: 0.0,
-            input_forward: 0.0,
             input_up: 0.0,
             input_down: 0.0,
+            input_roll: Rad::zero(),
 
             sensitivity,
 
             speed,
+            throttle: 1.0,
 
+            // TODO: create dedicated and reusable Transform component
             position: position.into(),
             yaw: yaw.into(),
             pitch: pitch.into(),
@@ -81,28 +83,50 @@ impl PlayerCameraController {
         if keyboard_mgr.key_pressed[VirtualKeyCode::Right as usize] {
             self.input_right += amount;
         }
+
+        // Roll
+        if keyboard_mgr.key_pressed[VirtualKeyCode::Q as usize] {
+            self.input_roll -= Rad(amount);
+        }
+        if keyboard_mgr.key_pressed[VirtualKeyCode::W as usize] {
+            self.input_roll += Rad(amount);
+        }
+
+        // Throttle
+        if keyboard_mgr.key_pressed[VirtualKeyCode::A as usize] {
+            self.throttle += amount;
+        }
+        if keyboard_mgr.key_pressed[VirtualKeyCode::Z as usize] {
+            self.throttle -= amount;
+        }
     }
 
     pub fn update_camera(&mut self, camera: &mut Camera, dt: Duration) {
         let dt = dt.as_secs_f32();
 
-        self.input_forward = 1.0;
-
+        // Throttle
+        if self.throttle > 2.0 {
+            self.throttle = 1.0
+        } else if self.throttle < 0.0 {
+            self.throttle = 0.0;
+        }
         let mut position = camera.position;
         let mut pitch = camera.pitch;
         let mut yaw = camera.yaw;
+        let mut roll = camera.roll;
 
         let (yaw_sin, yaw_cos) = yaw.0.sin_cos();
-        let pitch_sin = pitch.0.sin();
+        let (pitch_sin, pitch_cos) = pitch.0.sin_cos();
+
+        // Update values
         let forward = Vector3::new(yaw_cos, pitch_sin, yaw_sin).normalize();
-        position += forward * self.input_forward * self.speed * dt;
-
-        // Up/down
-        position.y += (self.input_up - self.input_down) * self.speed * dt;
-
-        // Rotate
+        let right = Vector3::new(-yaw_sin, 0.0, yaw_cos).normalize();
+        let up = Vector3::cross(forward, right).normalize();
+        // let forward = Vector3::new(pitch_cos * yaw_cos, pitch_sin, pitch_cos * yaw_sin).normalize();
+        position += forward * self.throttle * self.speed * dt;
         yaw += Rad(self.input_right - self.input_left) * self.sensitivity * dt;
         pitch += Rad(self.input_up - self.input_down) * self.sensitivity * dt;
+        roll += self.input_roll * 0.2 * dt;
 
         // Limit camera angle
         if pitch < -Rad(SAFE_FRAC_PI_2) {
@@ -112,14 +136,14 @@ impl PlayerCameraController {
         }
 
         // Cleanup
-        self.input_forward = 0.0;
         self.input_right = 0.0;
         self.input_left = 0.0;
         self.input_up = 0.0;
         self.input_down = 0.0;
+        self.input_roll = Rad(0.0);
 
         // Set camera
-        camera.set(position, yaw, pitch);
+        camera.set(position, yaw, pitch, roll);
     }
 
     // Resets camera position, yaw and pitch to initial values

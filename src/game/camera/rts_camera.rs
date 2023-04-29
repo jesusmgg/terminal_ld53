@@ -165,7 +165,7 @@ impl RtsCameraController {
         self.amount_down = 0.0;
 
         // Set camera
-        camera.set(position, yaw, pitch);
+        camera.set(position, yaw, pitch, Rad(0.0));
     }
 
     /// Resets camera position, yaw and pitch to initial values
@@ -176,6 +176,6 @@ impl RtsCameraController {
 
         position.y = self.initial_height;
 
-        camera.set(position, yaw, pitch);
+        camera.set(position, yaw, pitch, Rad(0.0));
     }
 }

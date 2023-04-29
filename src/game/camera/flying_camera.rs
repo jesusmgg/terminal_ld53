@@ -173,6 +173,6 @@ impl FlyingCameraController {
             pitch = Rad(SAFE_FRAC_PI_2);
         }
 
-        camera.set(position, yaw, pitch);
+        camera.set(position, yaw, pitch, Rad(0.0));
     }
 }

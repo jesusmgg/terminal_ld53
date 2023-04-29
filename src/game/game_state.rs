@@ -9,7 +9,7 @@ use crate::{
 };
 
 use super::{
-    audio_test::AudioTest, camera::rts_camera::RtsCameraController,
+    audio_test::AudioTest, camera::player_camera::PlayerCameraController,
     egui_manager::egui_renderer::EguiRenderer, mesh_renderer::MeshInstancedRendererMgr,
     on_screen_diagnostics::OnScreenDiagnostics, sample_scene,
 };
@@ -18,7 +18,7 @@ pub struct GameState {
     cursor_mgr: CursorMgr,
     keyboard_mgr: KeyboardMgr,
 
-    camera_controller: RtsCameraController,
+    player_camera: PlayerCameraController,
     egui_renderer: EguiRenderer,
     on_screen_diagnostics: OnScreenDiagnostics,
     mesh_instanced_renderer_mgr: MeshInstancedRendererMgr,
@@ -32,8 +32,13 @@ impl GameState {
         let cursor_mgr = CursorMgr::new(&mut render_state.window);
         let keyboard_mgr = KeyboardMgr::new();
 
-        let camera_controller =
-            RtsCameraController::new(70.0, 40.0, 10.0, 40.0, -50.0, &mut render_state.camera);
+        let player_camera = PlayerCameraController::new(
+            (0.0, 5.0, 10.0),
+            cgmath::Deg(-90.0),
+            cgmath::Deg(-20.0),
+            10.0,
+            1.0,
+        );
         let egui_renderer = EguiRenderer::new(event_loop, render_state);
         let on_screen_diagnostics = OnScreenDiagnostics::new(0.1);
         let mut mesh_instanced_renderer_mgr = MeshInstancedRendererMgr::new(render_state);
@@ -46,7 +51,7 @@ impl GameState {
             cursor_mgr,
             keyboard_mgr,
 
-            camera_controller,
+            player_camera,
             egui_renderer,
             on_screen_diagnostics,
             mesh_instanced_renderer_mgr,
@@ -64,13 +69,11 @@ impl GameState {
 
         self.egui_renderer.input(event, window);
         self.audio_test.input(event, window);
-
-        self.camera_controller.input(&self.keyboard_mgr);
     }
 
     /// Handle component updates
     pub fn update(&mut self, render_state: &mut RenderState, dt: Duration) {
-        self.camera_controller.update(
+        self.player_camera.update(
             &mut render_state.camera,
             &self.cursor_mgr,
             &self.keyboard_mgr,

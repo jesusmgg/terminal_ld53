@@ -12,7 +12,7 @@ use crate::renderer::{
 const MAX_MESH_COUNT: usize = 128;
 const MAX_INSTANCE_COUNT: usize = 256;
 
-// TODO: position/rotation should probably be independtly managed.
+// TODO: position/rotation should probably be independently managed.
 //       This component should take just about rendering as much as possible.
 // TODO: add mesh instance update facilities.
 //       Currently the component supports just a single instance per mesh.

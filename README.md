@@ -1,3 +1,5 @@
+Ludum Dare 53 game.
+
 ## Dependencies
 ### Ubuntu
 - build-essential

@@ -5,6 +5,8 @@ struct CameraUniform {
 @group(1) @binding(0)
 var<uniform> camera: CameraUniform;
 
+const fog_color: vec4<f32> = vec4<f32>(0.23922, 0.19216, 0.29020, 1.0);
+
 struct InstanceInput {
     @location(5) model_matrix_0: vec4<f32>,
     @location(6) model_matrix_1: vec4<f32>,
@@ -29,6 +31,7 @@ struct VertexOutput {
     @location(1) tangent_position: vec3<f32>,
     @location(2) tangent_light_position: vec3<f32>,
     @location(3) tangent_view_position: vec3<f32>,
+    @location(4) view_distance: f32,
 };
 
 @vertex
@@ -60,14 +63,16 @@ fn vs_main(
     ));
 
     let world_position: vec4<f32> = model_matrix * vec4<f32>(model.position, 1.0);
-    
+    let view_distance: f32 = distance(model.position, camera.view_pos.xyz);
+
     var out: VertexOutput;
     out.clip_position = camera.view_proj * world_position;
     out.tex_coords = model.tex_coords;
     out.tangent_position = tangent_matrix * world_position.xyz;
     out.tangent_view_position = tangent_matrix * camera.view_pos.xyz;
     out.tangent_light_position = tangent_matrix * light.position;
-    
+    out.view_distance = view_distance;
+
     return out;
 }
 
@@ -110,10 +115,14 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
     // Specular lighting
     let specular_strength = pow(max(dot(tangent_normal, half_dir), 0.0), 32.0);
     let specular_color = specular_strength * light.color;
-    
-    let result = (ambient_color + diffuse_color + specular_color) * object_color.rgb;    
-    // let result = specular_color;
-    // let result = diffuse_color * object_color.rgb;    
-    
+
+    // Distance fog
+    let fog_start: f32 = 100.0;
+    let fog_end: f32 = 150.0;
+    var fog_factor: f32 = (in.view_distance - fog_start) / (fog_end - fog_start);
+    fog_factor = clamp(fog_factor, 0.0, 1.0);
+
+    let result = (ambient_color + diffuse_color + specular_color) * object_color.rgb + fog_factor * fog_color.rgb;
+
     return vec4<f32>(result, object_color.a);
 }

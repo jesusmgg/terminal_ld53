@@ -1,5 +1,3 @@
-use std::ops::Range;
-
 use wgpu::util::DeviceExt;
 
 use crate::renderer::{
@@ -13,7 +11,7 @@ const MAX_MESH_COUNT: usize = 128;
 const MAX_INSTANCE_COUNT: usize = 256;
 
 // TODO: position/rotation should probably be independently managed.
-//       This component should take just about rendering as much as possible.
+//       This component should be just about rendering as much as possible.
 // TODO: add mesh instance update facilities.
 //       Currently the component supports just a single instance per mesh.
 pub struct MeshInstancedRendererMgr {
@@ -113,51 +111,6 @@ impl MeshInstancedRendererMgr {
         self.instance_raw.push(mesh_instances);
 
         self.model.len() - 1
-    }
-
-    /// Returns appended instance index range
-    pub fn append(
-        &mut self,
-        render_state: &RenderState,
-        mut models: Vec<model::Model>,
-        mut positions: Vec<cgmath::Vector3<f32>>,
-        mut rotations: Vec<cgmath::Quaternion<f32>>,
-    ) -> Option<Range<usize>> {
-        let new_model_count = models.len();
-        if new_model_count == 0
-            || new_model_count != positions.len()
-            || new_model_count != rotations.len()
-        {
-            return None;
-        }
-
-        let start = self.model.len() - 1;
-
-        self.model.append(&mut models);
-        self.position.append(&mut positions);
-        self.rotation.append(&mut rotations);
-
-        let end = self.model.len();
-
-        for i in start..end {
-            let mut mesh_instances = Vec::with_capacity(MAX_INSTANCE_COUNT);
-            mesh_instances.push(model::InstanceRaw::new(positions[i], rotations[i]));
-
-            let instance_buffer =
-                render_state
-                    .device
-                    .create_buffer_init(&wgpu::util::BufferInitDescriptor {
-                        label: Some("Instance buffer"),
-                        contents: bytemuck::cast_slice(&mesh_instances),
-                        usage: wgpu::BufferUsages::VERTEX,
-                    });
-            self.instance_buffer.push(instance_buffer);
-            self.is_instance_buffer_dirty.push(false);
-
-            self.instance_raw.push(mesh_instances);
-        }
-
-        Some(Range { start, end })
     }
 
     pub fn render(

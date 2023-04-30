@@ -5,7 +5,7 @@ struct CameraUniform {
 @group(1) @binding(0)
 var<uniform> camera: CameraUniform;
 
-const fog_color: vec4<f32> = vec4<f32>(0.23922, 0.19216, 0.29020, 1.0);
+const FOG_COLOR: vec4<f32> = vec4<f32>(0.23922, 0.19216, 0.29020, 1.0);
 
 struct InstanceInput {
     @location(5) model_matrix_0: vec4<f32>,
@@ -122,7 +122,7 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
     var fog_factor: f32 = (in.view_distance - fog_start) / (fog_end - fog_start);
     fog_factor = clamp(fog_factor, 0.0, 1.0);
 
-    let result = (ambient_color + diffuse_color + specular_color) * object_color.rgb + fog_factor * fog_color.rgb;
+    let result = (ambient_color + diffuse_color + specular_color) * object_color.rgb + fog_factor * FOG_COLOR.rgb;
 
     return vec4<f32>(result, object_color.a);
 }

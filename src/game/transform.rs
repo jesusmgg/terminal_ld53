@@ -10,9 +10,9 @@ const MAX_INSTANCE_COUNT: usize = 128;
 pub struct TransformMgr {
     pub position: Vec<Point3<f32>>,
 
-    pub forward: Vec<Vector3<f32>>,
-    pub right: Vec<Vector3<f32>>,
-    pub up: Vec<Vector3<f32>>,
+    forward: Vec<Vector3<f32>>,
+    right: Vec<Vector3<f32>>,
+    up: Vec<Vector3<f32>>,
 
     pub pitch: Vec<Rad<f32>>,
     pub yaw: Vec<Rad<f32>>,
@@ -95,5 +95,19 @@ impl TransformMgr {
     pub fn set_roll(&mut self, index: usize, roll: Rad<f32>) {
         self.roll[index] = roll;
         self.is_dirty[index] = true
+    }
+
+    pub fn get_forward(&self, index: usize) -> Vector3<f32> {
+        self.forward[index]
+    }
+    pub fn get_right(&self, index: usize) -> Vector3<f32> {
+        self.right[index]
+    }
+    pub fn get_up(&self, index: usize) -> Vector3<f32> {
+        self.up[index]
+    }
+
+    pub fn translate(&mut self, index: usize, translation: Vector3<f32>) {
+        self.position[index] += translation;
     }
 }

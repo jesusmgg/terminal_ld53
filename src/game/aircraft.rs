@@ -138,8 +138,8 @@ impl AircraftMgr {
             }
 
             // Update values
-            transform_mgr.position[transform_i] +=
-                transform_mgr.forward[transform_i] * self.throttle[i] * dt;
+            let translation = transform_mgr.get_forward(transform_i) * self.throttle[i] * dt;
+            transform_mgr.translate(transform_i, translation);
 
             transform_mgr.set_yaw(
                 transform_i,

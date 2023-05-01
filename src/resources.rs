@@ -10,9 +10,7 @@ use crate::renderer::texture;
 const ASSETS_ROOT_PATH: &str = "assets";
 
 pub async fn load_string(file_name: &str) -> anyhow::Result<String> {
-    let path = std::path::Path::new(env!("OUT_DIR"))
-        .join(ASSETS_ROOT_PATH)
-        .join(file_name);
+    let path = std::path::Path::new(ASSETS_ROOT_PATH).join(file_name);
     println!("Loading (text): {:?}", path);
     let txt = std::fs::read_to_string(path)?;
 
@@ -20,9 +18,7 @@ pub async fn load_string(file_name: &str) -> anyhow::Result<String> {
 }
 
 pub async fn load_binary(file_name: &str) -> anyhow::Result<Vec<u8>> {
-    let path = std::path::Path::new(env!("OUT_DIR"))
-        .join("assets")
-        .join(file_name);
+    let path = std::path::Path::new(ASSETS_ROOT_PATH).join(file_name);
     println!("Loading (binary): {:?}", path);
     let data = std::fs::read(path)?;
 
@@ -388,9 +384,7 @@ pub async fn load_model_gltf(
 
 // TODO: add streaming audio loading support
 pub async fn load_static_sound_data(file_name: &str) -> anyhow::Result<StaticSoundData> {
-    let path = std::path::Path::new(env!("OUT_DIR"))
-        .join("assets")
-        .join(file_name);
+    let path = std::path::Path::new(ASSETS_ROOT_PATH).join(file_name);
     println!("Loading (static sound data): {:?}", path);
 
     let sound_data = StaticSoundData::from_file(path, StaticSoundSettings::default())?;

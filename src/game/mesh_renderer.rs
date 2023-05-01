@@ -1,3 +1,4 @@
+use cgmath::{Quaternion, Vector3};
 use wgpu::util::DeviceExt;
 
 use crate::renderer::{
@@ -16,12 +17,11 @@ const MAX_INSTANCE_COUNT: usize = 256;
 //       Currently the component supports just a single instance per mesh.
 pub struct MeshInstancedRendererMgr {
     model: Vec<model::Model>,
-    position: Vec<cgmath::Vector3<f32>>,
-    rotation: Vec<cgmath::Quaternion<f32>>,
+    position: Vec<Vector3<f32>>,
+    rotation: Vec<Quaternion<f32>>,
 
     instance_raw: Vec<Vec<model::InstanceRaw>>,
     instance_buffer: Vec<wgpu::Buffer>,
-    is_instance_buffer_dirty: Vec<bool>,
 
     pub texture_bind_group_layout: wgpu::BindGroupLayout,
     render_pipeline: wgpu::RenderPipeline,
@@ -35,7 +35,6 @@ impl MeshInstancedRendererMgr {
 
         let instance_raw = Vec::with_capacity(MAX_MESH_COUNT);
         let instance_buffer = Vec::with_capacity(MAX_MESH_COUNT);
-        let is_instance_buffer_dirty = Vec::with_capacity(MAX_MESH_COUNT);
 
         let texture_bind_group_layout = create_texture_bind_group_layout(&render_state.device);
         let render_pipeline_layout =
@@ -75,7 +74,6 @@ impl MeshInstancedRendererMgr {
 
             instance_raw,
             instance_buffer,
-            is_instance_buffer_dirty,
 
             texture_bind_group_layout,
             render_pipeline,
@@ -87,30 +85,45 @@ impl MeshInstancedRendererMgr {
         &mut self,
         render_state: &RenderState,
         model: model::Model,
-        position: cgmath::Vector3<f32>,
-        rotation: cgmath::Quaternion<f32>,
+        position: Vector3<f32>,
+        rotation: Quaternion<f32>,
     ) -> usize {
         self.model.push(model);
         self.position.push(position);
         self.rotation.push(rotation);
 
+        let index = self.model.len() - 1;
+
         let mut mesh_instances = Vec::with_capacity(MAX_INSTANCE_COUNT);
         mesh_instances.push(model::InstanceRaw::new(position, rotation));
-
-        let instance_buffer =
-            render_state
-                .device
-                .create_buffer_init(&wgpu::util::BufferInitDescriptor {
-                    label: Some("Instance buffer"),
-                    contents: bytemuck::cast_slice(&mesh_instances),
-                    usage: wgpu::BufferUsages::VERTEX,
-                });
-        self.instance_buffer.push(instance_buffer);
-        self.is_instance_buffer_dirty.push(false);
-
         self.instance_raw.push(mesh_instances);
 
-        self.model.len() - 1
+        let instance_buffer = self.create_instance_buffer(index, render_state);
+        self.instance_buffer.push(instance_buffer);
+
+        index
+    }
+
+    fn create_instance_buffer(&self, index: usize, render_state: &RenderState) -> wgpu::Buffer {
+        render_state
+            .device
+            .create_buffer_init(&wgpu::util::BufferInitDescriptor {
+                label: Some("Instance buffer"),
+                contents: bytemuck::cast_slice(&self.instance_raw[index]),
+                usage: wgpu::BufferUsages::VERTEX,
+            })
+    }
+
+    pub fn update_instance_position(
+        &mut self,
+        index: usize,
+        position: Vector3<f32>,
+        rotation: Quaternion<f32>,
+        render_state: &RenderState,
+    ) {
+        self.instance_raw[index][0].update(position, rotation);
+        let instance_buffer = self.create_instance_buffer(index, render_state);
+        self.instance_buffer[index] = instance_buffer;
     }
 
     pub fn render(
@@ -141,8 +154,6 @@ impl MeshInstancedRendererMgr {
         render_pass.set_pipeline(&self.render_pipeline);
 
         for i in 0..self.model.len() {
-            // TODO: Update dirty instance buffers
-
             render_pass.set_vertex_buffer(1, self.instance_buffer[i].slice(..));
 
             render_pass.draw_model_instanced(

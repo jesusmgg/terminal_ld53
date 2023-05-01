@@ -41,7 +41,9 @@ impl AircraftInputMgr {
                 AircraftPilot::Player => {
                     self.process_keyboard_input(keyboard_mgr, i);
                 }
-                AircraftPilot::Ai => {}
+                AircraftPilot::Ai => {
+                    self.process_ai_input(i);
+                }
             }
         }
     }
@@ -72,6 +74,10 @@ impl AircraftInputMgr {
         if keyboard_mgr.key_pressed[VirtualKeyCode::Z as usize] {
             self.input_throttle[index] -= amount;
         }
+    }
+
+    fn process_ai_input(&mut self, index: usize) {
+        self.input_throttle[index] = 1.0;
     }
 
     pub fn cleanup(&mut self, index: usize) {

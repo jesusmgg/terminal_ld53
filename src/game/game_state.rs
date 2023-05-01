@@ -40,16 +40,17 @@ impl GameState {
 
         let player_camera = PlayerCameraController::new();
 
-        let mut aircraft_mgr = AircraftMgr::new();
-        let mut aircraft_input_mgr = AircraftInputMgr::new();
-        let mut transform_mgr = TransformMgr::new();
-
         let egui_renderer = EguiRenderer::new(event_loop, render_state);
         let on_screen_diagnostics = OnScreenDiagnostics::new(0.1);
         let mut mesh_instanced_renderer_mgr = MeshInstancedRendererMgr::new(render_state);
         let audio_mgr = AudioMgr::new();
 
         let audio_test = AudioTest::new().await;
+
+        let mut aircraft_mgr = AircraftMgr::new().unwrap();
+        let mut aircraft_input_mgr = AircraftInputMgr::new();
+        let mut transform_mgr = TransformMgr::new();
+
         sample_scene::create(
             &mut aircraft_mgr,
             &mut transform_mgr,
@@ -91,8 +92,13 @@ impl GameState {
     /// Handle component updates
     pub fn update(&mut self, render_state: &mut RenderState, dt: Duration) {
         self.aircraft_input_mgr.update(&self.keyboard_mgr);
-        self.aircraft_mgr
-            .update(&mut self.transform_mgr, &mut self.aircraft_input_mgr, dt);
+        self.aircraft_mgr.update(
+            &mut self.transform_mgr,
+            &mut self.aircraft_input_mgr,
+            &mut self.mesh_instanced_renderer_mgr,
+            &render_state,
+            dt,
+        );
 
         self.transform_mgr.update();
 

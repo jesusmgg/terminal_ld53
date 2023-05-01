@@ -6,6 +6,7 @@ const SAFE_FRAC_PI_2: f32 = FRAC_PI_2 - 0.0001;
 
 const MAX_INSTANCE_COUNT: usize = 128;
 
+// TODO: add rotation
 pub struct TransformMgr {
     pub position: Vec<Point3<f32>>,
 

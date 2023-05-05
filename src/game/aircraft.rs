@@ -1,7 +1,7 @@
 use std::time::Duration;
 
 use anyhow::Result;
-use cgmath::{Deg, EuclideanSpace, Point3, Quaternion, Rad, Rotation3, Vector3};
+use cgmath::{Deg, EuclideanSpace, InnerSpace, Point3, Quaternion, Rad, Rotation3, Vector3};
 
 use crate::{renderer::render_state::RenderState, resources};
 
@@ -160,7 +160,14 @@ impl AircraftMgr {
                 let yaw_delta = Rad(input_mgr.input_yaw[input_i] * self.yaw_speed[i] * dt);
                 let roll_delta = Rad(0.0); // TODO: actually update roll
 
-                transform_mgr.rotate_local_axes(transform_i, pitch_delta, yaw_delta, roll_delta);
+                let mut flat_right = transform_mgr.right(transform_i);
+                flat_right.y = 0.0;
+                flat_right.normalize();
+
+                transform_mgr.rotate_around_axis(transform_i, flat_right, pitch_delta);
+                transform_mgr.rotate_around_axis(transform_i, Vector3::unit_y(), yaw_delta);
+
+                // transform_mgr.rotate_local_axes(transform_i, pitch_delta, yaw_delta, roll_delta);
             }
 
             input_mgr.cleanup(input_i);

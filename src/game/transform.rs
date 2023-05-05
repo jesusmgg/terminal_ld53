@@ -61,6 +61,11 @@ impl TransformMgr {
         self.rotation[index] = combined_rotation * self.rotation[index];
     }
 
+    pub fn rotate_around_axis(&mut self, index: usize, axis: Vector3<f32>, angle: Rad<f32>) {
+        let rotation = Quaternion::from_axis_angle(axis, -angle);
+        self.rotation[index] = rotation * self.rotation[index];
+    }
+
     pub fn euler(&self, index: usize) -> Euler<Rad<f32>> {
         Euler::from(self.rotation[index])
     }

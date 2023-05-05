@@ -115,6 +115,8 @@ impl GameState {
     pub fn ui(&mut self, render_state: &mut RenderState) {
         self.egui_renderer.ui_begin_frame(&render_state.window);
 
+        self.aircraft_mgr
+            .ui(&self.transform_mgr, &self.egui_renderer.context);
         self.on_screen_diagnostics.ui(&self.egui_renderer.context);
 
         self.egui_renderer.ui_end_frame();

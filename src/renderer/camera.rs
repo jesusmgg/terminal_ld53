@@ -1,7 +1,8 @@
 use cgmath::{
-    perspective, InnerSpace, Matrix4, Point3, Quaternion, Rad, Rotation3, SquareMatrix, Vector3,
-    Zero,
+    perspective, InnerSpace, Matrix4, Point3, Quaternion, Rad, Rotation, SquareMatrix, Vector3,
 };
+
+use crate::game::transform::TransformMgr;
 
 #[rustfmt::skip]
 pub const OPENGL_TO_WGPU_MATRIX: cgmath::Matrix4<f32> = cgmath::Matrix4::new(
@@ -14,52 +15,24 @@ pub const OPENGL_TO_WGPU_MATRIX: cgmath::Matrix4<f32> = cgmath::Matrix4::new(
 #[derive(Debug)]
 pub struct Camera {
     pub position: Point3<f32>,
-    pub yaw: Rad<f32>,
-    pub pitch: Rad<f32>,
-    pub roll: Rad<f32>,
+    pub rotation: Quaternion<f32>,
 }
 
 impl Camera {
-    pub fn new<V: Into<Point3<f32>>, Y: Into<Rad<f32>>, P: Into<Rad<f32>>>(
-        position: V,
-        yaw: Y,
-        pitch: P,
-    ) -> Camera {
-        Camera {
-            position: position.into(),
-            yaw: yaw.into(),
-            pitch: pitch.into(),
-            roll: Rad::zero(),
-        }
+    pub fn new(position: Point3<f32>, rotation: Quaternion<f32>) -> Self {
+        Self { position, rotation }
     }
 
-    pub fn set<V: Into<Point3<f32>>, Y: Into<Rad<f32>>, P: Into<Rad<f32>>, R: Into<Rad<f32>>>(
-        &mut self,
-        position: V,
-        yaw: Y,
-        pitch: P,
-        roll: R,
-    ) {
-        self.position = position.into();
-        self.yaw = yaw.into();
-        self.pitch = pitch.into();
-        self.roll = roll.into();
+    pub fn set_from_transform_mgr(&mut self, transform_mgr: &TransformMgr, index: usize) {
+        self.position = transform_mgr.position[index];
+        self.rotation = transform_mgr.rotation[index];
     }
 
     pub fn calc_matrix(&self) -> Matrix4<f32> {
-        let (pitch_sin, pitch_cos) = self.pitch.0.sin_cos();
-        let (yaw_sin, yaw_cos) = self.yaw.0.sin_cos();
+        let forward = self.rotation.rotate_vector(Vector3::unit_z()).normalize();
+        let up = self.rotation.rotate_vector(Vector3::unit_y()).normalize();
 
-        let forward = Vector3::new(pitch_cos * yaw_cos, pitch_sin, pitch_cos * yaw_sin).normalize();
-        let mut right = Vector3::new(-yaw_sin, 0.0, yaw_cos).normalize();
-        right = Quaternion::from_axis_angle(forward, self.roll) * right;
-        let up = Vector3::cross(right, forward).normalize();
-
-        Matrix4::look_to_rh(
-            self.position,
-            Vector3::new(pitch_cos * yaw_cos, pitch_sin, pitch_cos * yaw_sin).normalize(),
-            up,
-        )
+        Matrix4::look_to_rh(self.position, forward, up)
     }
 }
 

@@ -1,6 +1,5 @@
 use std::time::Duration;
 
-use cgmath::{InnerSpace, Rad, Vector3};
 use winit::event::{
     DeviceEvent, ElementState, Event, KeyboardInput, MouseButton, MouseScrollDelta, VirtualKeyCode,
     WindowEvent,
@@ -132,6 +131,8 @@ impl FlyingCameraController {
     }
 
     pub fn update_camera(&mut self, camera: &mut Camera, dt: Duration) {
+        // TODO: update camera using transform manager
+        /*
         if !self.mouse_pressed {
             return;
         }
@@ -173,6 +174,7 @@ impl FlyingCameraController {
             pitch = Rad(SAFE_FRAC_PI_2);
         }
 
-        camera.set(position, yaw, pitch, Rad(0.0));
+        camera.set_position_pitch_yaw_roll(position, pitch, yaw, Rad(0.0));
+        */
     }
 }

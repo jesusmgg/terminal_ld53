@@ -1,110 +1,86 @@
 use std::f32::consts::FRAC_PI_2;
 
-use cgmath::{InnerSpace, Point3, Quaternion, Rad, Rotation3, Vector3};
+use cgmath::{Euler, InnerSpace, Point3, Quaternion, Rad, Rotation, Rotation3, Vector3};
 
 const SAFE_FRAC_PI_2: f32 = FRAC_PI_2 - 0.0001;
 
 const MAX_INSTANCE_COUNT: usize = 128;
 
-// TODO: add rotation
+// OPTIMIZE: Rotation calculations are allocating new Quaternions and Eulers all the time.
+//           An approach could be caching up, right, forward, pitch, yaw, roll values and keeping the dirty state.
 pub struct TransformMgr {
     pub position: Vec<Point3<f32>>,
-
-    forward: Vec<Vector3<f32>>,
-    right: Vec<Vector3<f32>>,
-    up: Vec<Vector3<f32>>,
-
-    pub pitch: Vec<Rad<f32>>,
-    pub yaw: Vec<Rad<f32>>,
-    pub roll: Vec<Rad<f32>>,
-
-    is_dirty: Vec<bool>,
+    pub rotation: Vec<Quaternion<f32>>,
 }
 
 impl TransformMgr {
     pub fn new() -> TransformMgr {
         TransformMgr {
             position: Vec::with_capacity(MAX_INSTANCE_COUNT),
-
-            forward: Vec::with_capacity(MAX_INSTANCE_COUNT),
-            right: Vec::with_capacity(MAX_INSTANCE_COUNT),
-            up: Vec::with_capacity(MAX_INSTANCE_COUNT),
-
-            pitch: Vec::with_capacity(MAX_INSTANCE_COUNT),
-            yaw: Vec::with_capacity(MAX_INSTANCE_COUNT),
-            roll: Vec::with_capacity(MAX_INSTANCE_COUNT),
-
-            is_dirty: Vec::with_capacity(MAX_INSTANCE_COUNT),
+            rotation: Vec::with_capacity(MAX_INSTANCE_COUNT),
         }
     }
 
     /// Returns instance index
-    pub fn add<V: Into<Point3<f32>>>(&mut self, position: V) -> usize {
+    pub fn add<V: Into<Point3<f32>>>(&mut self, position: V, rotation: Quaternion<f32>) -> usize {
         self.position.push(position.into());
+        self.rotation.push(rotation);
 
-        self.forward.push(-Vector3::unit_z());
-        self.right.push(Vector3::unit_x());
-        self.up.push(Vector3::unit_y());
-
-        self.pitch.push(Rad(0.0));
-        self.yaw.push(Rad(0.0));
-        self.roll.push(Rad(0.0));
-
-        self.is_dirty.push(true);
-
-        self.position.len() - 1
+        self.len() - 1
     }
 
-    pub fn update(&mut self) {
-        for i in 0..self.position.len() {
-            if self.is_dirty[i] {
-                let (pitch_sin, pitch_cos) = self.pitch[i].0.sin_cos();
-                let (yaw_sin, yaw_cos) = self.yaw[i].0.sin_cos();
-
-                let forward =
-                    Vector3::new(pitch_cos * yaw_cos, pitch_sin, pitch_cos * yaw_sin).normalize();
-                let mut right = Vector3::new(-yaw_sin, 0.0, yaw_cos).normalize();
-                right = Quaternion::from_axis_angle(forward, self.roll[i]) * right;
-                let up = Vector3::cross(right, forward).normalize();
-
-                self.forward[i] = forward;
-                self.right[i] = right;
-                self.up[i] = up;
-
-                self.is_dirty[i] = false;
-            }
-        }
+    /// Returns the amount of managed instances.
+    pub fn len(&self) -> usize {
+        self.position.len()
     }
 
-    pub fn set_pitch(&mut self, index: usize, mut pitch: Rad<f32>) {
-        // Limit angle
-        if pitch < -Rad(SAFE_FRAC_PI_2) {
-            pitch = -Rad(SAFE_FRAC_PI_2);
-        } else if pitch > Rad(SAFE_FRAC_PI_2) {
-            pitch = Rad(SAFE_FRAC_PI_2);
+    pub fn update(&mut self) {}
+
+    /// Rotate local principal rotation axes.
+    /// Takes pitch, yaw and roll as Rad<f32>.
+    pub fn rotate_local_axes(
+        &mut self,
+        index: usize,
+        mut pitch_delta: Rad<f32>,
+        yaw_delta: Rad<f32>,
+        roll_delta: Rad<f32>,
+    ) {
+        // Limit pitch angle
+        if pitch_delta < -Rad(SAFE_FRAC_PI_2) {
+            pitch_delta = -Rad(SAFE_FRAC_PI_2);
+        } else if pitch_delta > Rad(SAFE_FRAC_PI_2) {
+            pitch_delta = Rad(SAFE_FRAC_PI_2);
         }
 
-        self.pitch[index] = pitch;
-        self.is_dirty[index] = true
+        let z_rotation = Quaternion::from_axis_angle(self.forward(index), -roll_delta);
+        let y_rotation = Quaternion::from_axis_angle(self.up(index), -yaw_delta);
+        let x_rotation = Quaternion::from_axis_angle(self.right(index), -pitch_delta);
+
+        let combined_rotation = x_rotation * y_rotation * z_rotation;
+
+        self.rotation[index] = combined_rotation * self.rotation[index];
     }
 
-    pub fn set_yaw(&mut self, index: usize, yaw: Rad<f32>) {
-        self.yaw[index] = yaw;
-        self.is_dirty[index] = true
-    }
-    pub fn set_roll(&mut self, index: usize, roll: Rad<f32>) {
-        self.roll[index] = roll;
-        self.is_dirty[index] = true
+    pub fn euler(&self, index: usize) -> Euler<Rad<f32>> {
+        Euler::from(self.rotation[index])
     }
 
-    pub fn get_forward(&self, index: usize) -> Vector3<f32> {
-        self.forward[index]
+    pub fn forward(&self, index: usize) -> Vector3<f32> {
+        self.rotation[index]
+            .rotate_vector(Vector3::unit_z())
+            .normalize()
     }
-    pub fn get_right(&self, index: usize) -> Vector3<f32> {
-        self.right[index]
+
+    pub fn right(&self, index: usize) -> Vector3<f32> {
+        self.rotation[index]
+            .rotate_vector(Vector3::unit_x())
+            .normalize()
     }
-    pub fn get_up(&self, index: usize) -> Vector3<f32> {
-        self.up[index]
+
+    pub fn up(&self, index: usize) -> Vector3<f32> {
+        self.rotation[index]
+            .rotate_vector(Vector3::unit_y())
+            .normalize()
     }
 
     pub fn translate(&mut self, index: usize, translation: Vector3<f32>) {

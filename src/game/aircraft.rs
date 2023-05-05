@@ -23,6 +23,9 @@ pub struct AircraftMgr {
     yaw_speed: Vec<f32>,
     pitch_speed: Vec<f32>,
 
+    start_position: Vec<Point3<f32>>,
+    start_rotation: Vec<Quaternion<f32>>,
+
     // TODO: choose a safer way to store references
     pub transform_i: Vec<Option<usize>>,
     pub input_i: Vec<Option<usize>>,
@@ -39,6 +42,9 @@ impl AircraftMgr {
             min_speed: Vec::with_capacity(MAX_INSTANCE_COUNT),
             yaw_speed: Vec::with_capacity(MAX_INSTANCE_COUNT),
             pitch_speed: Vec::with_capacity(MAX_INSTANCE_COUNT),
+
+            start_position: Vec::with_capacity(MAX_INSTANCE_COUNT),
+            start_rotation: Vec::with_capacity(MAX_INSTANCE_COUNT),
 
             transform_i: Vec::with_capacity(MAX_INSTANCE_COUNT),
             input_i: Vec::with_capacity(MAX_INSTANCE_COUNT),
@@ -57,6 +63,7 @@ impl AircraftMgr {
         pitch_speed: f32,
 
         start_position: Point3<f32>,
+        start_rotation: Quaternion<f32>,
 
         transform_mgr: &mut TransformMgr,
         input_mgr: &mut AircraftInputMgr,
@@ -72,14 +79,18 @@ impl AircraftMgr {
         self.yaw_speed.push(yaw_speed);
         self.pitch_speed.push(pitch_speed);
 
+        self.start_position.push(start_position);
+        self.start_rotation.push(start_rotation);
+
         self.transform_i
-            .push(Some(transform_mgr.add(start_position)));
+            .push(Some(transform_mgr.add(start_position, start_rotation)));
         self.input_i.push(Some(input_mgr.add(pilot_type.clone())));
 
         let index = self.len() - 1;
 
-        let position = transform_mgr.position[self.transform_i[index].unwrap()];
-        let rotation = Quaternion::from_axis_angle(Vector3::unit_z(), Deg(0.0));
+        let transform_i = self.transform_i[index].unwrap();
+        let position = transform_mgr.position[transform_i];
+        let rotation = transform_mgr.rotation[transform_i];
 
         let mesh_renderer_i = match pilot_type {
             AircraftPilot::Player => None,
@@ -131,30 +142,30 @@ impl AircraftMgr {
             let input_i = self.input_i[i].unwrap();
 
             // Throttle
+            self.throttle[i] += input_mgr.input_throttle[input_i];
             if self.throttle[i] > self.max_speed[i] {
                 self.throttle[i] = self.max_speed[i]
             } else if self.throttle[i] < self.min_speed[i] {
                 self.throttle[i] = self.min_speed[i];
             }
 
-            // Update values
-            let translation = transform_mgr.get_forward(transform_i) * self.throttle[i] * dt;
-            transform_mgr.translate(transform_i, translation);
+            // Update transform
+            if input_mgr.input_reset_transform[input_i] {
+                self.reset_transform(i, transform_mgr);
+            } else {
+                let translation = transform_mgr.forward(transform_i) * self.throttle[i] * dt;
+                transform_mgr.translate(transform_i, translation);
 
-            transform_mgr.set_yaw(
-                transform_i,
-                transform_mgr.yaw[transform_i]
-                    + Rad(input_mgr.input_yaw[input_i]) * self.yaw_speed[i] * dt,
-            );
-            transform_mgr.set_pitch(
-                transform_i,
-                transform_mgr.pitch[transform_i]
-                    + Rad(input_mgr.input_pitch[input_i]) * self.pitch_speed[i] * dt,
-            );
-            // roll += self.input_roll * 0.2 * dt;
+                let pitch_delta = Rad(input_mgr.input_pitch[input_i] * self.pitch_speed[i] * dt);
+                let yaw_delta = Rad(input_mgr.input_yaw[input_i] * self.yaw_speed[i] * dt);
+                let roll_delta = Rad(0.0); // TODO: actually update roll
+
+                transform_mgr.rotate_local_axes(transform_i, pitch_delta, yaw_delta, roll_delta);
+            }
 
             input_mgr.cleanup(input_i);
 
+            // Update mesh renderer
             // TODO: might be better off in render method
             match self.mesh_renderer_i[i] {
                 Some(mesh_renderer_i) => {
@@ -169,6 +180,50 @@ impl AircraftMgr {
                 }
                 None => {}
             };
+        }
+    }
+
+    pub fn ui(&self, transform_mgr: &TransformMgr, context: &egui::Context) {
+        // Print player aircraft debug info
+        let index = self.get_player_aircraft_index();
+        let throttle = self.throttle[index];
+        let position = transform_mgr.position[index];
+        let rotation = transform_mgr.rotation[index];
+        let forward = transform_mgr.forward(index);
+        let up = transform_mgr.up(index);
+        let right = transform_mgr.right(index);
+
+        let throttle_str = format!("Throttle: {:?}", throttle);
+        let position_str = format!("Position: {:?}", position);
+        let rotation_str = format!("Rotation: {:?}", rotation);
+        let forward_str = format!("Forward: {:?}", forward);
+        let up_str = format!("Up: {:?}", up);
+        let right_str = format!("Right: {:?}", right);
+
+        egui::SidePanel::left("Player Aircraft")
+            .resizable(false)
+            .min_width(400.0)
+            .show(context, |ui| {
+                ui.label("Player aircraft");
+                ui.label("----------------------");
+                ui.label(throttle_str);
+                ui.label(position_str);
+                ui.label(rotation_str);
+                ui.label(forward_str);
+                ui.label(up_str);
+                ui.label(right_str);
+            });
+    }
+
+    fn reset_transform(&self, index: usize, transform_mgr: &mut TransformMgr) {
+        let transform_i = self.transform_i[index];
+
+        match transform_i {
+            Some(transform_i) => {
+                transform_mgr.position[transform_i] = self.start_position[index];
+                transform_mgr.rotation[transform_i] = self.start_rotation[index];
+            }
+            None => {}
         }
     }
 }

@@ -45,8 +45,8 @@ pub async fn create(
     aircraft_mgr
         .add(
             AircraftPilot::Player,
-            20.0,
-            5.0,
+            1.0,
+            0.0,
             2.0,
             3.0,
             cgmath::Point3 {
@@ -54,6 +54,7 @@ pub async fn create(
                 y: 6.0,
                 z: 10.0,
             },
+            cgmath::Quaternion::from_axis_angle(cgmath::Vector3::unit_z(), cgmath::Deg(0.0)),
             transform_mgr,
             aircraft_input_mgr,
             mesh_renderer_mgr,
@@ -75,6 +76,7 @@ pub async fn create(
                 y: 10.0,
                 z: 0.0,
             },
+            cgmath::Quaternion::from_axis_angle(cgmath::Vector3::unit_z(), cgmath::Deg(0.0)),
             transform_mgr,
             aircraft_input_mgr,
             mesh_renderer_mgr,

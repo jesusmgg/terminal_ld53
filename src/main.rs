@@ -15,8 +15,8 @@ use winit::{
 };
 
 const WINDOW_TITLE: &str = "terminal_ld53";
-const WINDOW_WIDTH: u16 = 1024;
-const WINDOW_HEIGHT: u16 = 768;
+const WINDOW_WIDTH: u16 = 1600;
+const WINDOW_HEIGHT: u16 = 900;
 
 fn main() {
     // Use pollster to block thread while game loop runs

@@ -1,6 +1,6 @@
 use std::time::Duration;
 
-use cgmath::{Deg, InnerSpace, Rad, Vector3};
+use cgmath::{Deg, Rad};
 use winit::event::VirtualKeyCode;
 
 use crate::{
@@ -120,6 +120,8 @@ impl RtsCameraController {
         window: &winit::window::Window,
         dt: Duration,
     ) {
+        // TODO: update camera using transform manager
+        /*
         let dt = dt.as_secs_f32();
 
         let mut position = camera.position;
@@ -165,17 +167,21 @@ impl RtsCameraController {
         self.amount_down = 0.0;
 
         // Set camera
-        camera.set(position, yaw, pitch, Rad(0.0));
+        camera.set_position_pitch_yaw_roll(position, pitch, yaw, Rad(0.0));
+        */
     }
 
     /// Resets camera position, yaw and pitch to initial values
     fn reset_camera(&self, camera: &mut Camera) {
+        // TODO: update camera using transform manager
+        /*
         let mut position = camera.position;
         let pitch = self.angle;
         let yaw = camera.yaw;
 
         position.y = self.initial_height;
 
-        camera.set(position, yaw, pitch, Rad(0.0));
+        camera.set_position_pitch_yaw_roll(position, pitch, yaw, Rad(0.0));
+        */
     }
 }

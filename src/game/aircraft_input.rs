@@ -12,6 +12,8 @@ pub struct AircraftInputMgr {
     pub input_yaw: Vec<f32>,
     pub input_pitch: Vec<f32>,
     pub input_throttle: Vec<f32>,
+
+    pub input_reset_transform: Vec<bool>,
 }
 
 impl AircraftInputMgr {
@@ -22,6 +24,8 @@ impl AircraftInputMgr {
             input_yaw: Vec::with_capacity(MAX_INSTANCE_COUNT),
             input_pitch: Vec::with_capacity(MAX_INSTANCE_COUNT),
             input_throttle: Vec::with_capacity(MAX_INSTANCE_COUNT),
+
+            input_reset_transform: Vec::with_capacity(MAX_INSTANCE_COUNT),
         }
     }
 
@@ -32,7 +36,13 @@ impl AircraftInputMgr {
         self.input_pitch.push(0.0);
         self.input_throttle.push(0.0);
 
-        self.pilot_type.len() - 1
+        self.input_reset_transform.push(false);
+
+        self.len() - 1
+    }
+
+    pub fn len(&self) -> usize {
+        self.pilot_type.len()
     }
 
     pub fn update(&mut self, keyboard_mgr: &KeyboardMgr) {
@@ -74,10 +84,13 @@ impl AircraftInputMgr {
         if keyboard_mgr.key_pressed[VirtualKeyCode::Z as usize] {
             self.input_throttle[index] -= amount;
         }
+
+        // Other
+        self.input_reset_transform[index] = keyboard_mgr.key_down[VirtualKeyCode::R as usize];
     }
 
     fn process_ai_input(&mut self, index: usize) {
-        self.input_throttle[index] = 1.0;
+        self.input_throttle[index] = 0.0;
     }
 
     pub fn cleanup(&mut self, index: usize) {

@@ -1,6 +1,7 @@
 use std::time::Duration;
 
 use cgmath::Rotation3;
+use cgmath::Zero;
 use wgpu::util::DeviceExt;
 use winit::window::Window;
 
@@ -128,7 +129,20 @@ impl RenderState {
             }],
         });
 
-        let camera = camera::Camera::new((0.0, 5.0, 10.0), cgmath::Deg(-90.0), cgmath::Deg(0.0));
+        // let camera = camera::Camera::new_from_position_pitch_yaw(
+        //     (0.0, 5.0, 10.0),
+        //     cgmath::Deg(0.0),
+        //     cgmath::Deg(-90.0),
+        // );
+        let camera = camera::Camera::new(
+            cgmath::Point3 {
+                x: 0.0,
+                y: 5.0,
+                z: -90.0,
+            },
+            cgmath::Quaternion::zero(),
+        );
+
         let projection =
             camera::Projection::new(config.width, config.height, cgmath::Deg(80.0), 0.1, 500.0);
 

@@ -1,7 +1,4 @@
-use std::{
-    f32::{consts::FRAC_PI_2, EPSILON},
-    time::Duration,
-};
+use std::time::Duration;
 
 use anyhow::Result;
 use cgmath::{Deg, EuclideanSpace, InnerSpace, Point3, Quaternion, Rad, Rotation3, Vector3};
@@ -14,8 +11,6 @@ use super::{
 };
 
 const MAX_INSTANCE_COUNT: usize = 128;
-
-const SAFE_FRAC_PI_2: f32 = FRAC_PI_2 - 0.0001;
 
 /// Represents aircraft, both player and enemy.
 /// Aircraft index 0 is always the player.

@@ -1,9 +1,4 @@
-use std::f32::consts::FRAC_PI_2;
-
 use cgmath::{Euler, InnerSpace, Point3, Quaternion, Rad, Rotation, Rotation3, Vector3};
-
-const SAFE_FRAC_PI_2: f32 = FRAC_PI_2 - 0.0001;
-
 const MAX_INSTANCE_COUNT: usize = 128;
 
 // OPTIMIZE: Rotation calculations are allocating new Quaternions and Eulers all the time.
@@ -41,17 +36,10 @@ impl TransformMgr {
     pub fn rotate_local_axes(
         &mut self,
         index: usize,
-        mut pitch_delta: Rad<f32>,
+        pitch_delta: Rad<f32>,
         yaw_delta: Rad<f32>,
         roll_delta: Rad<f32>,
     ) {
-        // Limit pitch angle
-        if pitch_delta < -Rad(SAFE_FRAC_PI_2) {
-            pitch_delta = -Rad(SAFE_FRAC_PI_2);
-        } else if pitch_delta > Rad(SAFE_FRAC_PI_2) {
-            pitch_delta = Rad(SAFE_FRAC_PI_2);
-        }
-
         let z_rotation = Quaternion::from_axis_angle(self.forward(index), -roll_delta);
         let y_rotation = Quaternion::from_axis_angle(self.up(index), -yaw_delta);
         let x_rotation = Quaternion::from_axis_angle(self.right(index), -pitch_delta);

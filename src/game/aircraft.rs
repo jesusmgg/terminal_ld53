@@ -1,4 +1,7 @@
-use std::time::Duration;
+use std::{
+    f32::{consts::FRAC_PI_2, EPSILON},
+    time::Duration,
+};
 
 use anyhow::Result;
 use cgmath::{Deg, EuclideanSpace, InnerSpace, Point3, Quaternion, Rad, Rotation3, Vector3};
@@ -11,6 +14,8 @@ use super::{
 };
 
 const MAX_INSTANCE_COUNT: usize = 128;
+
+const SAFE_FRAC_PI_2: f32 = FRAC_PI_2 - 0.0001;
 
 /// Represents aircraft, both player and enemy.
 /// Aircraft index 0 is always the player.
@@ -156,7 +161,8 @@ impl AircraftMgr {
                 let translation = transform_mgr.forward(transform_i) * self.throttle[i] * dt;
                 transform_mgr.translate(transform_i, translation);
 
-                let pitch_delta = Rad(input_mgr.input_pitch[input_i] * self.pitch_speed[i] * dt);
+                let mut pitch_delta =
+                    Rad(input_mgr.input_pitch[input_i] * self.pitch_speed[i] * dt);
                 let yaw_delta = Rad(input_mgr.input_yaw[input_i] * self.yaw_speed[i] * dt);
                 let roll_delta = Rad(0.0); // TODO: actually update roll
 
@@ -164,10 +170,18 @@ impl AircraftMgr {
                 flat_right.y = 0.0;
                 flat_right.normalize();
 
+                // Limit pitch angle
+                let pitch_threshold = 0.9; // ~84.26 degrees
+                let forward = transform_mgr.forward(transform_i);
+                let forward_cos = forward.dot(Vector3::unit_y());
+                if (forward_cos < -pitch_threshold && pitch_delta < Rad(0.0))
+                    || (forward_cos > pitch_threshold && pitch_delta > Rad(0.0))
+                {
+                    pitch_delta = Rad(0.0);
+                }
+
                 transform_mgr.rotate_around_axis(transform_i, flat_right, pitch_delta);
                 transform_mgr.rotate_around_axis(transform_i, Vector3::unit_y(), yaw_delta);
-
-                // transform_mgr.rotate_local_axes(transform_i, pitch_delta, yaw_delta, roll_delta);
             }
 
             input_mgr.cleanup(input_i);

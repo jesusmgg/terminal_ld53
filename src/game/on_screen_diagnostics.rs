@@ -33,7 +33,7 @@ impl OnScreenDiagnostics {
 
     pub fn ui(&self, context: &egui::Context) {
         let title_str = format!("Diagnostics (every {}s):", self.update_period);
-        let frame_time_str = format!("Frame time: {}ms", self.frame_time);
+        let frame_time_str = format!("FT: {}ms", self.frame_time);
         let fps_str = format!("FPS: {}", self.fps);
 
         egui::SidePanel::right("right_panel")

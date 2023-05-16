@@ -1,6 +1,8 @@
 mod aircraft;
 mod aircraft_input;
 mod audio_test;
+mod axis_renderer;
+mod axis_vertex;
 mod camera;
 mod egui_manager;
 pub mod game_state;

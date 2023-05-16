@@ -129,11 +129,6 @@ impl RenderState {
             }],
         });
 
-        // let camera = camera::Camera::new_from_position_pitch_yaw(
-        //     (0.0, 5.0, 10.0),
-        //     cgmath::Deg(0.0),
-        //     cgmath::Deg(-90.0),
-        // );
         let camera = camera::Camera::new(
             cgmath::Point3 {
                 x: 0.0,
@@ -225,6 +220,7 @@ impl RenderState {
             bytemuck::cast_slice(&[self.camera_uniform]),
         );
 
+        // TODO: create independent lighting manager
         // Update light
         let old_position: cgmath::Vector3<_> = self.light_uniform.position.into();
         self.light_uniform.position = (cgmath::Quaternion::from_axis_angle(

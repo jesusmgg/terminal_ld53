@@ -10,9 +10,9 @@ use crate::{
 
 use super::{
     aircraft::AircraftMgr, aircraft_input::AircraftInputMgr, audio_test::AudioTest,
-    camera::player_camera::PlayerCameraController, egui_manager::egui_renderer::EguiRenderer,
-    mesh_renderer::MeshInstancedRendererMgr, on_screen_diagnostics::OnScreenDiagnostics,
-    sample_scene, transform::TransformMgr,
+    axis_renderer::AxisRendererMgr, camera::player_camera::PlayerCameraController,
+    egui_manager::egui_renderer::EguiRenderer, mesh_renderer::MeshInstancedRendererMgr,
+    on_screen_diagnostics::OnScreenDiagnostics, sample_scene, transform::TransformMgr,
 };
 
 pub struct GameState {
@@ -20,6 +20,7 @@ pub struct GameState {
     keyboard_mgr: KeyboardMgr,
 
     player_camera: PlayerCameraController,
+    axis_renderer_mgr: AxisRendererMgr,
 
     aircraft_mgr: AircraftMgr,
     aircraft_input_mgr: AircraftInputMgr,
@@ -39,6 +40,7 @@ impl GameState {
         let keyboard_mgr = KeyboardMgr::new();
 
         let player_camera = PlayerCameraController::new();
+        let axis_renderer_mgr = AxisRendererMgr::new(render_state);
 
         let egui_renderer = EguiRenderer::new(event_loop, render_state);
         let on_screen_diagnostics = OnScreenDiagnostics::new(0.1);
@@ -65,6 +67,7 @@ impl GameState {
             keyboard_mgr,
 
             player_camera,
+            axis_renderer_mgr,
 
             aircraft_mgr,
             aircraft_input_mgr,
@@ -132,7 +135,12 @@ impl GameState {
         self.mesh_instanced_renderer_mgr
             .render(render_state, encoder, view)
             .unwrap();
+
         self.egui_renderer
+            .render(render_state, encoder, view)
+            .unwrap();
+
+        self.axis_renderer_mgr
             .render(render_state, encoder, view)
             .unwrap();
     }

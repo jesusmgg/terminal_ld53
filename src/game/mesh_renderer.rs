@@ -11,10 +11,7 @@ use crate::renderer::{
 const MAX_MESH_COUNT: usize = 128;
 const MAX_INSTANCE_COUNT: usize = 256;
 
-// TODO: position/rotation should probably be independently managed.
-//       This component should be just about rendering as much as possible.
-// TODO: add mesh instance update facilities.
-//       Currently the component supports just a single instance per mesh.
+// TODO: Currently the component supports just a single instance per mesh.
 pub struct MeshInstancedRendererMgr {
     model: Vec<model::Model>,
     position: Vec<Vector3<f32>>,
@@ -41,7 +38,7 @@ impl MeshInstancedRendererMgr {
             render_state
                 .device
                 .create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
-                    label: Some("Render pipeline layout"),
+                    label: Some("Mesh render pipeline layout"),
                     bind_group_layouts: &[
                         &texture_bind_group_layout,
                         &render_state.camera_bind_group_layout,
@@ -52,9 +49,9 @@ impl MeshInstancedRendererMgr {
 
         let render_pipeline = {
             let shader_module_descriptor = wgpu::ShaderModuleDescriptor {
-                label: Some("Shader"),
+                label: Some("Mesh renderer shader"),
                 source: wgpu::ShaderSource::Wgsl(
-                    include_str!("../renderer/standard_shader.wgsl").into(), // TODO: load as resource
+                    include_str!("../renderer/shaders/standard.wgsl").into(), // TODO: load shaders as resource
                 ),
             };
             create_render_pipeline(
@@ -122,6 +119,7 @@ impl MeshInstancedRendererMgr {
         render_state: &RenderState,
     ) {
         self.instance_raw[index][0].update(position, rotation);
+        // TODO: use queue.write_buffer instead of recreating the buffer
         let instance_buffer = self.create_instance_buffer(index, render_state);
         self.instance_buffer[index] = instance_buffer;
     }
@@ -133,7 +131,7 @@ impl MeshInstancedRendererMgr {
         view: &wgpu::TextureView,
     ) -> Result<(), wgpu::SurfaceError> {
         let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-            label: Some("Render pass"),
+            label: Some("Mesh render pass"),
             color_attachments: &[Some(wgpu::RenderPassColorAttachment {
                 view,
                 resolve_target: None,

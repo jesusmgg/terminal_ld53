@@ -30,11 +30,6 @@ fn vs_main(
         vec4(0.0, 0.0, 0.0, 1.0)
     );
 
-    let transposed_view_proj: mat4x4<f32> = transpose(camera.view_proj);
-    let cam_forward = normalize(vec4<f32>(transposed_view_proj[2].xyz, 0.0));
-    
-    position += cam_forward;
-
     let scale: f32 = 0.1;
     let scale_matrix = mat4x4<f32>(
         vec4<f32>(scale, 0.0, 0.0, 0.0),
@@ -45,7 +40,7 @@ fn vs_main(
     
     position = rotation_matrix * position;
     
-    let translation = vec4<f32>(-0.9, -0.9, scale, 0.0) / scale;
+    let translation = vec4<f32>(-0.9, -0.9, 0.5, 0.0) / scale;
     position += translation;
     
     position = scale_matrix * position;

@@ -66,8 +66,6 @@ impl AxisRendererMgr {
         }
     }
 
-    pub fn update(&self) {}
-
     pub fn render(
         &mut self,
         render_state: &RenderState,

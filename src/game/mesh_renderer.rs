@@ -61,6 +61,7 @@ impl MeshInstancedRendererMgr {
                 Some(texture::Texture::DEPTH_FORMAT),
                 &[model::ModelVertex::desc(), model::InstanceRaw::desc()],
                 shader_module_descriptor,
+                Some(wgpu::Face::Back),
             )
         };
 

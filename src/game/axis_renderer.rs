@@ -56,6 +56,7 @@ impl AxisRendererMgr {
                 Some(texture::Texture::DEPTH_FORMAT),
                 &[AxisVertex::desc()],
                 shader_module_descriptor,
+                None,
             )
         };
 

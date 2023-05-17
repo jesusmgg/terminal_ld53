@@ -31,45 +31,18 @@ impl Vertex for AxisVertex {
     }
 }
 
-// pub const AXIS_VERTICES: &[AxisVertex] = &[
-//     AxisVertex {
-//         position: [0.0, 0.0, 0.0],
-//         color: [1.0, 0.0, 0.0],
-//     }, // X axis start
-//     AxisVertex {
-//         position: [10.0, 0.0, 0.0],
-//         color: [1.0, 0.0, 0.0],
-//     }, // X axis end
-//     AxisVertex {
-//         position: [0.0, 0.0, 0.0],
-//         color: [0.0, 1.0, 0.0],
-//     }, // Y axis start
-//     AxisVertex {
-//         position: [0.0, 10.0, 0.0],
-//         color: [0.0, 1.0, 0.0],
-//     }, // Y axis end
-//     AxisVertex {
-//         position: [0.0, 0.0, 0.0],
-//         color: [0.0, 0.0, 1.0],
-//     }, // Z axis start
-//     AxisVertex {
-//         position: [0.0, 0.0, 10.0],
-//         color: [0.0, 0.0, 1.0],
-//     }, // Z axis end
-// ];
-
-pub const AXIS_VERTICES: [AxisVertex; 18] = [
-    // X-Axis
+pub const AXIS_VERTICES: [AxisVertex; 36] = [
+    // X-Axis 1
     AxisVertex {
         position: [0.0, 0.0, 0.0],
         color: [1.0, 0.0, 0.0], // Red
     },
     AxisVertex {
-        position: [1.0, 0.0, 0.0],
+        position: [0.9, -0.025, 0.0],
         color: [1.0, 0.0, 0.0], // Red
     },
     AxisVertex {
-        position: [0.9, 0.05, 0.0],
+        position: [0.9, 0.025, 0.0],
         color: [1.0, 0.0, 0.0], // Red
     },
     AxisVertex {
@@ -84,17 +57,42 @@ pub const AXIS_VERTICES: [AxisVertex; 18] = [
         position: [0.9, 0.05, 0.0],
         color: [1.0, 0.0, 0.0], // Red
     },
-    // Y-Axis
+    // X-Axis 2
+    AxisVertex {
+        position: [0.0, 0.0, 0.0],
+        color: [1.0, 0.0, 0.0], // Red
+    },
+    AxisVertex {
+        position: [0.9, 0.0, -0.025],
+        color: [1.0, 0.0, 0.0], // Red
+    },
+    AxisVertex {
+        position: [0.9, 0.0, 0.025],
+        color: [1.0, 0.0, 0.0], // Red
+    },
+    AxisVertex {
+        position: [0.9, 0.0, -0.05],
+        color: [1.0, 0.0, 0.0], // Red
+    },
+    AxisVertex {
+        position: [1.0, 0.0, 0.0],
+        color: [1.0, 0.0, 0.0], // Red
+    },
+    AxisVertex {
+        position: [0.9, 0.0, 0.05],
+        color: [1.0, 0.0, 0.0], // Red
+    },
+    // Y-Axis 1
     AxisVertex {
         position: [0.0, 0.0, 0.0],
         color: [0.0, 1.0, 0.0], // Green
     },
     AxisVertex {
-        position: [0.0, 1.0, 0.0],
+        position: [-0.025, 0.9, 0.0],
         color: [0.0, 1.0, 0.0], // Green
     },
     AxisVertex {
-        position: [0.05, 0.9, 0.0],
+        position: [0.025, 0.9, 0.0],
         color: [0.0, 1.0, 0.0], // Green
     },
     AxisVertex {
@@ -109,17 +107,42 @@ pub const AXIS_VERTICES: [AxisVertex; 18] = [
         position: [0.05, 0.9, 0.0],
         color: [0.0, 1.0, 0.0], // Green
     },
-    // Z-Axis
+    // Y-Axis 2
+    AxisVertex {
+        position: [0.0, 0.0, 0.0],
+        color: [0.0, 1.0, 0.0], // Green
+    },
+    AxisVertex {
+        position: [0.0, 0.9, -0.025],
+        color: [0.0, 1.0, 0.0], // Green
+    },
+    AxisVertex {
+        position: [0.0, 0.9, 0.025],
+        color: [0.0, 1.0, 0.0], // Green
+    },
+    AxisVertex {
+        position: [0.0, 0.9, -0.05],
+        color: [0.0, 1.0, 0.0], // Green
+    },
+    AxisVertex {
+        position: [0.0, 1.0, 0.0],
+        color: [0.0, 1.0, 0.0], // Green
+    },
+    AxisVertex {
+        position: [0.0, 0.9, 0.05],
+        color: [0.0, 1.0, 0.0], // Green
+    },
+    // Z-Axis 1
     AxisVertex {
         position: [0.0, 0.0, 0.0],
         color: [0.0, 0.0, 1.0], // Blue
     },
     AxisVertex {
-        position: [0.0, 0.0, 1.0],
+        position: [0.0, -0.025, 0.9],
         color: [0.0, 0.0, 1.0], // Blue
     },
     AxisVertex {
-        position: [0.0, 0.05, 0.9],
+        position: [0.0, 0.025, 0.9],
         color: [0.0, 0.0, 1.0], // Blue
     },
     AxisVertex {
@@ -132,6 +155,31 @@ pub const AXIS_VERTICES: [AxisVertex; 18] = [
     },
     AxisVertex {
         position: [0.0, 0.05, 0.9],
+        color: [0.0, 0.0, 1.0], // Blue
+    },
+    // Z-Axis 2
+    AxisVertex {
+        position: [0.0, 0.0, 0.0],
+        color: [0.0, 0.0, 1.0], // Blue
+    },
+    AxisVertex {
+        position: [-0.025, 0.0, 0.9],
+        color: [0.0, 0.0, 1.0], // Blue
+    },
+    AxisVertex {
+        position: [0.025, 0.0, 0.9],
+        color: [0.0, 0.0, 1.0], // Blue
+    },
+    AxisVertex {
+        position: [-0.05, 0.0, 0.9],
+        color: [0.0, 0.0, 1.0], // Blue
+    },
+    AxisVertex {
+        position: [0.0, 0.0, 1.0],
+        color: [0.0, 0.0, 1.0], // Blue
+    },
+    AxisVertex {
+        position: [0.05, 0.0, 0.9],
         color: [0.0, 0.0, 1.0], // Blue
     },
 ];

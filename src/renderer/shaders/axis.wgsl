@@ -21,9 +21,35 @@ struct VertexOutput {
 fn vs_main(
     model: VertexInput,
 ) -> VertexOutput {
-    var position = vec4(model.position, 0.0) - vec4(camera.view_pos.xyz, 0.0);
-    position = camera.view_proj * vec4<f32>(position.xyz, 1.0);
+    var position = vec4<f32>(model.position, 1.0);
 
+    let rotation_matrix = mat4x4<f32>(
+        vec4(camera.view_proj[0].xyz, 0.0),
+        vec4(camera.view_proj[1].xyz, 0.0),
+        vec4(camera.view_proj[2].xyz, 0.0),
+        vec4(0.0, 0.0, 0.0, 1.0)
+    );
+
+    let transposed_view_proj: mat4x4<f32> = transpose(camera.view_proj);
+    let cam_forward = normalize(vec4<f32>(transposed_view_proj[2].xyz, 0.0));
+    
+    position += cam_forward;
+
+    let scale: f32 = 0.1;
+    let scale_matrix = mat4x4<f32>(
+        vec4<f32>(scale, 0.0, 0.0, 0.0),
+        vec4<f32>(0.0, scale, 0.0, 0.0),
+        vec4<f32>(0.0, 0.0, scale, 0.0),
+        vec4<f32>(0.0, 0.0, 0.0, 1.0)
+    );    
+    
+    position = rotation_matrix * position;
+    
+    let translation = vec4<f32>(-0.9, -0.9, scale, 0.0) / scale;
+    position += translation;
+    
+    position = scale_matrix * position;
+    
     var out: VertexOutput;
     out.clip_position = position;
     out.color = model.color;

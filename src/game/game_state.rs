@@ -9,10 +9,15 @@ use crate::{
 };
 
 use super::{
-    aircraft::AircraftMgr, aircraft_input::AircraftInputMgr, audio_test::AudioTest,
-    axis_renderer::AxisRendererMgr, camera::player_camera::PlayerCameraController,
-    egui_manager::egui_renderer::EguiRenderer, mesh_renderer::MeshInstancedRendererMgr,
-    on_screen_diagnostics::OnScreenDiagnostics, sample_scene, transform::TransformMgr,
+    aircraft::AircraftMgr,
+    aircraft_input::AircraftInputMgr,
+    audio_test::AudioTest,
+    camera::player_camera::PlayerCameraController,
+    diagnostics::{axis_renderer::AxisRendererMgr, on_screen_diagnostics::OnScreenDiagnostics},
+    egui_manager::egui_renderer::EguiRenderer,
+    mesh_renderer::MeshInstancedRendererMgr,
+    sample_scene,
+    transform::TransformMgr,
 };
 
 pub struct GameState {

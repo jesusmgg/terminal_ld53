@@ -46,7 +46,7 @@ impl AxisRendererMgr {
             let shader_module_descriptor = wgpu::ShaderModuleDescriptor {
                 label: Some("Axis shader"),
                 source: wgpu::ShaderSource::Wgsl(
-                    include_str!("../renderer/shaders/axis.wgsl").into(), // TODO: load shaders as resource
+                    include_str!("../../renderer/shaders/axis.wgsl").into(), // TODO: load shaders as resource
                 ),
             };
             create_render_pipeline(

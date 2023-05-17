@@ -1,12 +1,10 @@
 mod aircraft;
 mod aircraft_input;
 mod audio_test;
-mod axis_renderer;
-mod axis_vertex;
 mod camera;
+mod diagnostics;
 mod egui_manager;
 pub mod game_state;
 mod mesh_renderer;
-mod on_screen_diagnostics;
 mod sample_scene;
 pub mod transform;

@@ -20,8 +20,15 @@ pub struct AircraftMgr {
     throttle: Vec<f32>,
     max_speed: Vec<f32>,
     min_speed: Vec<f32>,
+    acceleration: Vec<f32>,
+
     yaw_speed: Vec<f32>,
+    yaw_max_speed: Vec<f32>,
+    yaw_acceleration: Vec<f32>,
+
     pitch_speed: Vec<f32>,
+    pitch_max_speed: Vec<f32>,
+    pitch_acceleration: Vec<f32>,
 
     start_position: Vec<Point3<f32>>,
     start_rotation: Vec<Quaternion<f32>>,
@@ -40,8 +47,15 @@ impl AircraftMgr {
             throttle: Vec::with_capacity(MAX_INSTANCE_COUNT),
             max_speed: Vec::with_capacity(MAX_INSTANCE_COUNT),
             min_speed: Vec::with_capacity(MAX_INSTANCE_COUNT),
+            acceleration: Vec::with_capacity(MAX_INSTANCE_COUNT),
+
             yaw_speed: Vec::with_capacity(MAX_INSTANCE_COUNT),
+            yaw_max_speed: Vec::with_capacity(MAX_INSTANCE_COUNT),
+            yaw_acceleration: Vec::with_capacity(MAX_INSTANCE_COUNT),
+
             pitch_speed: Vec::with_capacity(MAX_INSTANCE_COUNT),
+            pitch_max_speed: Vec::with_capacity(MAX_INSTANCE_COUNT),
+            pitch_acceleration: Vec::with_capacity(MAX_INSTANCE_COUNT),
 
             start_position: Vec::with_capacity(MAX_INSTANCE_COUNT),
             start_rotation: Vec::with_capacity(MAX_INSTANCE_COUNT),
@@ -59,8 +73,12 @@ impl AircraftMgr {
 
         max_speed: f32,
         min_speed: f32,
-        yaw_speed: f32,
-        pitch_speed: f32,
+        acceleration: f32,
+
+        yaw_max_speed: f32,
+        yaw_acceleration: f32,
+        pitch_max_speed: f32,
+        pitch_acceleration: f32,
 
         start_position: Point3<f32>,
         start_rotation: Quaternion<f32>,
@@ -76,8 +94,15 @@ impl AircraftMgr {
         self.throttle.push(min_speed);
         self.max_speed.push(max_speed);
         self.min_speed.push(min_speed);
-        self.yaw_speed.push(yaw_speed);
-        self.pitch_speed.push(pitch_speed);
+        self.acceleration.push(acceleration);
+
+        self.yaw_speed.push(0.0);
+        self.yaw_max_speed.push(yaw_max_speed);
+        self.yaw_acceleration.push(yaw_acceleration);
+
+        self.pitch_speed.push(0.0);
+        self.pitch_max_speed.push(pitch_max_speed);
+        self.pitch_acceleration.push(pitch_acceleration);
 
         self.start_position.push(start_position);
         self.start_rotation.push(start_rotation);
@@ -142,12 +167,14 @@ impl AircraftMgr {
             let input_i = self.input_i[i].unwrap();
 
             // Throttle
-            self.throttle[i] += input_mgr.input_throttle[input_i];
-            if self.throttle[i] > self.max_speed[i] {
-                self.throttle[i] = self.max_speed[i]
-            } else if self.throttle[i] < self.min_speed[i] {
-                self.throttle[i] = self.min_speed[i];
-            }
+            self.throttle[i] = self.calculate_accumulated_speed(
+                self.throttle[i],
+                input_mgr.input_throttle[input_i],
+                self.acceleration[i],
+                self.min_speed[i],
+                self.max_speed[i],
+                dt,
+            );
 
             // Update transform
             if input_mgr.input_reset_transform[input_i] {
@@ -156,9 +183,39 @@ impl AircraftMgr {
                 let translation = transform_mgr.forward(transform_i) * self.throttle[i] * dt;
                 transform_mgr.translate(transform_i, translation);
 
-                let mut pitch_delta =
-                    Rad(input_mgr.input_pitch[input_i] * self.pitch_speed[i] * dt);
-                let yaw_delta = Rad(input_mgr.input_yaw[input_i] * self.yaw_speed[i] * dt);
+                // Pitch
+                // Input goes from -1 to 1. 0 means no input.
+                let mut input_pitch = input_mgr.input_pitch[input_i];
+                // TODO: check performance of these comparisons (abs + float)
+                if f32::abs(input_pitch) < 0.01 {
+                    input_pitch = -f32::signum(self.pitch_speed[i])
+                };
+                self.pitch_speed[i] = self.calculate_accumulated_speed(
+                    self.pitch_speed[i],
+                    input_pitch,
+                    self.pitch_acceleration[i],
+                    -self.pitch_max_speed[i],
+                    self.pitch_max_speed[i],
+                    dt,
+                );
+
+                // Yaw
+                // Input goes from -1 to 1. 0 means no input.
+                let mut input_yaw = input_mgr.input_yaw[input_i];
+                if f32::abs(input_yaw) < 0.01 {
+                    input_yaw = -f32::signum(self.yaw_speed[i]);
+                };
+                self.yaw_speed[i] = self.calculate_accumulated_speed(
+                    self.yaw_speed[i],
+                    input_yaw,
+                    self.yaw_acceleration[i],
+                    -self.yaw_max_speed[i],
+                    self.yaw_max_speed[i],
+                    dt,
+                );
+
+                let mut pitch_delta = Rad(self.pitch_speed[i] * dt);
+                let yaw_delta = Rad(self.yaw_speed[i] * dt);
                 let roll_delta = Rad(0.0); // TODO: actually update roll
 
                 let mut flat_right = transform_mgr.right(transform_i);
@@ -197,6 +254,27 @@ impl AircraftMgr {
                 None => {}
             };
         }
+    }
+
+    fn calculate_accumulated_speed(
+        &self,
+        current_speed: f32,
+        input: f32,
+        acceleration: f32,
+        min_speed: f32,
+        max_speed: f32,
+        dt: f32,
+    ) -> f32 {
+        let mut speed = current_speed;
+        speed += input * acceleration * dt;
+
+        if speed > max_speed {
+            return max_speed;
+        } else if speed < min_speed {
+            return min_speed;
+        }
+
+        speed
     }
 
     pub fn ui(&self, transform_mgr: &TransformMgr, context: &egui::Context) {

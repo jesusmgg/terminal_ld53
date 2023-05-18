@@ -96,5 +96,6 @@ impl AircraftInputMgr {
     pub fn cleanup(&mut self, index: usize) {
         self.input_yaw[index] = 0.0;
         self.input_pitch[index] = 0.0;
+        self.input_throttle[index] = 0.0;
     }
 }

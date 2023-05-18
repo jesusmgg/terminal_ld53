@@ -45,10 +45,13 @@ pub async fn create(
     aircraft_mgr
         .add(
             AircraftPilot::Player,
-            1.0,
-            0.0,
+            5.0,
+            0.5,
+            5.0,
             2.0,
+            6.0,
             3.0,
+            10.0,
             cgmath::Point3 {
                 x: 0.0,
                 y: 6.0,
@@ -69,8 +72,11 @@ pub async fn create(
             AircraftPilot::Ai,
             20.0,
             5.0,
+            5.0,
             2.0,
+            10.0,
             3.0,
+            10.0,
             cgmath::Point3 {
                 x: 0.0,
                 y: 10.0,

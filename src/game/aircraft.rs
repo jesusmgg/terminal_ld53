@@ -193,10 +193,16 @@ impl AircraftMgr {
 
                 // Pitch
                 // Input goes from -1 to 1. 0 means no input.
+                let current_pitch = forward_y_cos;
                 let mut input_pitch = input_mgr.input_pitch[input_i];
                 // TODO: check performance of these comparisons (abs + float)
                 if f32::abs(input_pitch) < 0.01 {
-                    input_pitch = -f32::signum(self.pitch_speed[i])
+                    if f32::abs(current_pitch) < 0.01 {
+                        input_pitch = 0.0;
+                        self.pitch_speed[i] = 0.0;
+                    } else {
+                        input_pitch = -f32::signum(self.pitch_speed[i])
+                    }
                 };
                 self.pitch_speed[i] = self.calculate_accumulated_speed(
                     self.pitch_speed[i],
@@ -210,7 +216,12 @@ impl AircraftMgr {
                 // Yaw
                 let mut input_yaw = input_mgr.input_yaw[input_i];
                 if f32::abs(input_yaw) < 0.01 {
-                    input_yaw = -f32::signum(self.yaw_speed[i]);
+                    if f32::abs(self.yaw_speed[i]) < 0.01 {
+                        input_yaw = 0.0;
+                        self.yaw_speed[i] = 0.0;
+                    } else {
+                        input_yaw = -f32::signum(self.yaw_speed[i]);
+                    }
                 }
                 self.yaw_speed[i] = self.calculate_accumulated_speed(
                     self.yaw_speed[i],
@@ -226,14 +237,12 @@ impl AircraftMgr {
 
                 // Limit pitch
                 let pitch_threshold: f32 = 0.9; // ~84.26 degrees
-                let current_pitch = forward_y_cos;
                 let pitch_percent = f32::abs(current_pitch / pitch_threshold);
-                let forward = transform_mgr.forward(transform_i);
-                let forward_y_cos = forward.dot(Vector3::unit_y());
-                if (forward_y_cos < -pitch_threshold && pitch_delta < Rad(0.0))
-                    || (forward_y_cos > pitch_threshold && pitch_delta > Rad(0.0))
+                if (current_pitch < -pitch_threshold && pitch_delta < Rad(0.0))
+                    || (current_pitch > pitch_threshold && pitch_delta > Rad(0.0))
                 {
                     pitch_delta = Rad(0.0);
+                    self.pitch_speed[i] = 0.0;
                 }
 
                 // Roll

@@ -110,11 +110,12 @@ impl AircraftMgr {
         self.start_position.push(start_position);
         self.start_rotation.push(start_rotation);
 
+        let index = self.len() - 1;
+
         self.transform_i
             .push(Some(transform_mgr.add(start_position, start_rotation)));
-        self.input_i.push(Some(input_mgr.add(pilot_type.clone())));
-
-        let index = self.len() - 1;
+        self.input_i
+            .push(Some(input_mgr.add(pilot_type.clone(), index)));
 
         let transform_i = self.transform_i[index].unwrap();
         let position = transform_mgr.position[transform_i];
@@ -186,14 +187,16 @@ impl AircraftMgr {
                 let translation = transform_mgr.forward(transform_i) * self.throttle[i] * dt;
                 transform_mgr.translate(transform_i, translation);
 
-                let right = transform_mgr.right(transform_i);
-                let right_y_cos = right.dot(Vector3::unit_y());
                 let forward = transform_mgr.forward(transform_i);
                 let forward_y_cos = forward.dot(Vector3::unit_y());
+                let right = transform_mgr.right(transform_i);
+                let right_y_cos = right.dot(Vector3::unit_y());
+
+                let current_pitch = forward_y_cos;
+                let current_roll = right_y_cos;
 
                 // Pitch
                 // Input goes from -1 to 1. 0 means no input.
-                let current_pitch = forward_y_cos;
                 let mut input_pitch = input_mgr.input_pitch[input_i];
                 // TODO: check performance of these comparisons (abs + float)
                 if f32::abs(input_pitch) < 0.01 {
@@ -246,8 +249,7 @@ impl AircraftMgr {
                 }
 
                 // Roll
-                let roll_threshold: f32 = 0.5;
-                let current_roll = right_y_cos;
+                let roll_threshold: f32 = 0.2;
                 let roll_delta = Rad(-current_roll
                     + roll_threshold
                         * f32::sin(
@@ -259,11 +261,11 @@ impl AircraftMgr {
                 // Set rotations
                 let mut flat_right = right;
                 flat_right.y = 0.0;
-                flat_right.normalize();
+                flat_right = flat_right.normalize();
 
                 let mut flat_forward = forward;
                 flat_forward.y = 0.0;
-                flat_forward.normalize();
+                flat_forward = flat_forward.normalize();
 
                 transform_mgr.rotate_around_axis(transform_i, flat_right, pitch_delta);
                 transform_mgr.rotate_around_axis(transform_i, Vector3::unit_y(), yaw_delta);

@@ -67,29 +67,55 @@ pub async fn create(
         .unwrap();
 
     // Enemy aircraft
-    // aircraft_mgr
-    //     .add(
-    //         AircraftPilot::Ai,
-    //         20.0,
-    //         5.0,
-    //         5.0,
-    //         2.0,
-    //         10.0,
-    //         3.0,
-    //         10.0,
-    //         2.0,
-    //         6.0,
-    //         cgmath::Point3 {
-    //             x: 0.0,
-    //             y: 10.0,
-    //             z: 0.0,
-    //         },
-    //         cgmath::Quaternion::from_axis_angle(cgmath::Vector3::unit_z(), cgmath::Deg(0.0)),
-    //         transform_mgr,
-    //         aircraft_input_mgr,
-    //         mesh_renderer_mgr,
-    //         render_state,
-    //     )
-    //     .await
-    //     .unwrap();
+    aircraft_mgr
+        .add(
+            AircraftPilot::Ai,
+            20.0,
+            10.0,
+            5.0,
+            5.0,
+            10.0,
+            3.0,
+            6.0,
+            cgmath::Point3 {
+                x: 0.0,
+                y: 10.0,
+                z: 0.0,
+            },
+            cgmath::Quaternion::from_axis_angle(cgmath::Vector3::unit_z(), cgmath::Deg(0.0)),
+            transform_mgr,
+            aircraft_input_mgr,
+            mesh_renderer_mgr,
+            render_state,
+        )
+        .await
+        .unwrap();
+
+    let mut rng = oorandom::Rand32::new(1234);
+
+    for i in 0..1000 {
+        aircraft_mgr
+            .add(
+                AircraftPilot::Ai,
+                20.0,
+                10.0,
+                5.0,
+                5.0,
+                10.0,
+                3.0,
+                6.0,
+                cgmath::Point3 {
+                    x: rng.rand_range(0..1000) as f32 - 500.0,
+                    y: rng.rand_range(10..100) as f32,
+                    z: rng.rand_range(0..1000) as f32 - 500.0,
+                },
+                cgmath::Quaternion::from_axis_angle(cgmath::Vector3::unit_z(), cgmath::Deg(0.0)),
+                transform_mgr,
+                aircraft_input_mgr,
+                mesh_renderer_mgr,
+                render_state,
+            )
+            .await
+            .unwrap();
+    }
 }

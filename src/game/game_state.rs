@@ -99,7 +99,8 @@ impl GameState {
 
     /// Handle component updates
     pub fn update(&mut self, render_state: &mut RenderState, dt: Duration) {
-        self.aircraft_input_mgr.update(&self.keyboard_mgr);
+        self.aircraft_input_mgr
+            .update(&self.keyboard_mgr, &self.aircraft_mgr, &self.transform_mgr);
         self.aircraft_mgr.update(
             &mut self.transform_mgr,
             &mut self.aircraft_input_mgr,

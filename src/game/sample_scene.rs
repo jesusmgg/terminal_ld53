@@ -45,13 +45,13 @@ pub async fn create(
     aircraft_mgr
         .add(
             AircraftPilot::Player,
-            5.0,
-            0.5,
+            6.0,
+            1.5,
             5.0,
             2.0,
-            6.0,
+            5.0,
             3.0,
-            10.0,
+            6.0,
             cgmath::Point3 {
                 x: 0.0,
                 y: 6.0,
@@ -67,27 +67,29 @@ pub async fn create(
         .unwrap();
 
     // Enemy aircraft
-    aircraft_mgr
-        .add(
-            AircraftPilot::Ai,
-            20.0,
-            5.0,
-            5.0,
-            2.0,
-            10.0,
-            3.0,
-            10.0,
-            cgmath::Point3 {
-                x: 0.0,
-                y: 10.0,
-                z: 0.0,
-            },
-            cgmath::Quaternion::from_axis_angle(cgmath::Vector3::unit_z(), cgmath::Deg(0.0)),
-            transform_mgr,
-            aircraft_input_mgr,
-            mesh_renderer_mgr,
-            render_state,
-        )
-        .await
-        .unwrap();
+    // aircraft_mgr
+    //     .add(
+    //         AircraftPilot::Ai,
+    //         20.0,
+    //         5.0,
+    //         5.0,
+    //         2.0,
+    //         10.0,
+    //         3.0,
+    //         10.0,
+    //         2.0,
+    //         6.0,
+    //         cgmath::Point3 {
+    //             x: 0.0,
+    //             y: 10.0,
+    //             z: 0.0,
+    //         },
+    //         cgmath::Quaternion::from_axis_angle(cgmath::Vector3::unit_z(), cgmath::Deg(0.0)),
+    //         transform_mgr,
+    //         aircraft_input_mgr,
+    //         mesh_renderer_mgr,
+    //         render_state,
+    //     )
+    //     .await
+    //     .unwrap();
 }

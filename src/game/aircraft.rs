@@ -12,6 +12,8 @@ use super::{
 
 const MAX_INSTANCE_COUNT: usize = 128;
 
+const HALF_PI: f32 = 1.57079632679;
+
 /// Represents aircraft, both player and enemy.
 /// Aircraft index 0 is always the player.
 pub struct AircraftMgr {
@@ -77,6 +79,7 @@ impl AircraftMgr {
 
         yaw_max_speed: f32,
         yaw_acceleration: f32,
+
         pitch_max_speed: f32,
         pitch_acceleration: f32,
 
@@ -183,6 +186,11 @@ impl AircraftMgr {
                 let translation = transform_mgr.forward(transform_i) * self.throttle[i] * dt;
                 transform_mgr.translate(transform_i, translation);
 
+                let right = transform_mgr.right(transform_i);
+                let right_y_cos = right.dot(Vector3::unit_y());
+                let forward = transform_mgr.forward(transform_i);
+                let forward_y_cos = forward.dot(Vector3::unit_y());
+
                 // Pitch
                 // Input goes from -1 to 1. 0 means no input.
                 let mut input_pitch = input_mgr.input_pitch[input_i];
@@ -200,11 +208,10 @@ impl AircraftMgr {
                 );
 
                 // Yaw
-                // Input goes from -1 to 1. 0 means no input.
                 let mut input_yaw = input_mgr.input_yaw[input_i];
                 if f32::abs(input_yaw) < 0.01 {
                     input_yaw = -f32::signum(self.yaw_speed[i]);
-                };
+                }
                 self.yaw_speed[i] = self.calculate_accumulated_speed(
                     self.yaw_speed[i],
                     input_yaw,
@@ -216,24 +223,42 @@ impl AircraftMgr {
 
                 let mut pitch_delta = Rad(self.pitch_speed[i] * dt);
                 let yaw_delta = Rad(self.yaw_speed[i] * dt);
-                let roll_delta = Rad(0.0); // TODO: actually update roll
 
-                let mut flat_right = transform_mgr.right(transform_i);
-                flat_right.y = 0.0;
-                flat_right.normalize();
-
-                // Limit pitch angle
-                let pitch_threshold = 0.9; // ~84.26 degrees
+                // Limit pitch
+                let pitch_threshold: f32 = 0.9; // ~84.26 degrees
+                let current_pitch = forward_y_cos;
+                let pitch_percent = f32::abs(current_pitch / pitch_threshold);
                 let forward = transform_mgr.forward(transform_i);
-                let forward_cos = forward.dot(Vector3::unit_y());
-                if (forward_cos < -pitch_threshold && pitch_delta < Rad(0.0))
-                    || (forward_cos > pitch_threshold && pitch_delta > Rad(0.0))
+                let forward_y_cos = forward.dot(Vector3::unit_y());
+                if (forward_y_cos < -pitch_threshold && pitch_delta < Rad(0.0))
+                    || (forward_y_cos > pitch_threshold && pitch_delta > Rad(0.0))
                 {
                     pitch_delta = Rad(0.0);
                 }
 
+                // Roll
+                let roll_threshold: f32 = 0.5;
+                let current_roll = right_y_cos;
+                let roll_delta = Rad(-current_roll
+                    + roll_threshold
+                        * f32::sin(
+                            HALF_PI
+                                * (self.yaw_speed[i] / self.yaw_max_speed[i])
+                                * (1.0 - pitch_percent),
+                        ));
+
+                // Set rotations
+                let mut flat_right = right;
+                flat_right.y = 0.0;
+                flat_right.normalize();
+
+                let mut flat_forward = forward;
+                flat_forward.y = 0.0;
+                flat_forward.normalize();
+
                 transform_mgr.rotate_around_axis(transform_i, flat_right, pitch_delta);
                 transform_mgr.rotate_around_axis(transform_i, Vector3::unit_y(), yaw_delta);
+                transform_mgr.rotate_around_axis(transform_i, flat_forward, -roll_delta);
             }
 
             input_mgr.cleanup(input_i);
@@ -272,6 +297,10 @@ impl AircraftMgr {
             return max_speed;
         } else if speed < min_speed {
             return min_speed;
+        }
+
+        if f32::abs(speed) < 0.001 {
+            return 0.0;
         }
 
         speed

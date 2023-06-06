@@ -1,7 +1,12 @@
+use std::iter::Iterator;
+use std::sync::{Arc, Mutex};
 use std::time::Duration;
+
+use rayon::iter::{IndexedParallelIterator, IntoParallelRefMutIterator, ParallelIterator};
 
 use anyhow::Result;
 use cgmath::{Deg, EuclideanSpace, InnerSpace, Point3, Quaternion, Rad, Rotation3, Vector3};
+use rayon::prelude::IntoParallelIterator;
 
 use crate::{renderer::render_state::RenderState, resources};
 
@@ -164,16 +169,265 @@ impl AircraftMgr {
         render_state: &RenderState,
         dt: Duration,
     ) {
+        self.update_lineal(
+            transform_mgr,
+            input_mgr,
+            mesh_renderer_mgr,
+            render_state,
+            dt,
+        );
+    }
+
+    pub fn update_parallel(
+        &mut self,
+        transform_mgr: &mut TransformMgr,
+        input_mgr: &mut AircraftInputMgr,
+        mesh_renderer_mgr: &mut MeshInstancedRendererMgr,
+        render_state: &RenderState,
+        dt: Duration,
+    ) {
+        let dt = dt.as_secs_f32();
+
+        let iter = self
+            .pilot_type
+            .par_iter_mut()
+            .zip(self.throttle.par_iter_mut())
+            .zip(self.max_speed.par_iter_mut())
+            .zip(self.min_speed.par_iter_mut())
+            .zip(self.acceleration.par_iter_mut())
+            .zip(self.yaw_speed.par_iter_mut())
+            .zip(self.yaw_max_speed.par_iter_mut())
+            .zip(self.yaw_acceleration.par_iter_mut())
+            .zip(self.pitch_speed.par_iter_mut())
+            .zip(self.pitch_max_speed.par_iter_mut())
+            .zip(self.pitch_acceleration.par_iter_mut())
+            .zip(self.start_position.par_iter_mut())
+            .zip(self.start_rotation.par_iter_mut())
+            .zip(self.transform_i.par_iter_mut())
+            .zip(self.input_i.par_iter_mut())
+            .zip(self.mesh_renderer_i.par_iter_mut());
+
+        iter.enumerate().for_each_with(
+            (
+                Arc::new(Mutex::new(transform_mgr)),
+                Arc::new(Mutex::new(input_mgr)),
+                Arc::new(Mutex::new(mesh_renderer_mgr)),
+            ),
+            |(transform_mgr, input_mgr, mesh_renderer_mgr),
+             (
+                index,
+                (
+                    (
+                        (
+                            (
+                                (
+                                    (
+                                        (
+                                            (
+                                                (
+                                                    (
+                                                        (
+                                                            (
+                                                                (
+                                                                    (
+                                                                        (pilot_type, throttle),
+                                                                        max_speed,
+                                                                    ),
+                                                                    min_speed,
+                                                                ),
+                                                                acceleration,
+                                                            ),
+                                                            yaw_speed,
+                                                        ),
+                                                        yaw_max_speed,
+                                                    ),
+                                                    yaw_acceleration,
+                                                ),
+                                                pitch_speed,
+                                            ),
+                                            pitch_max_speed,
+                                        ),
+                                        pitch_acceleration,
+                                    ),
+                                    start_position,
+                                ),
+                                start_rotation,
+                            ),
+                            transform_i,
+                        ),
+                        input_i,
+                    ),
+                    mesh_renderer_i,
+                ),
+            )| {
+                let transform_i = transform_i.unwrap();
+                let input_i = input_i.unwrap();
+
+                // Get input
+                let mut input_mgr_lock = input_mgr.lock().unwrap();
+                let input_throttle = input_mgr_lock.input_throttle[input_i];
+                let input_reset_transform = input_mgr_lock.input_reset_transform[input_i];
+                let mut input_pitch = input_mgr_lock.input_pitch[input_i];
+                let mut input_yaw = input_mgr_lock.input_yaw[input_i];
+                input_mgr_lock.cleanup(input_i);
+                drop(input_mgr_lock);
+
+                // Throttle
+                *throttle = Self::calculate_accumulated_speed(
+                    *throttle,
+                    input_throttle,
+                    *acceleration,
+                    *min_speed,
+                    *max_speed,
+                    dt,
+                );
+
+                // Update transform
+                if input_reset_transform {
+                    Self::reset_transform(
+                        transform_i,
+                        *start_position,
+                        *start_rotation,
+                        &mut transform_mgr.lock().unwrap(),
+                    );
+                } else {
+                    let mut transform_mgr_lock = transform_mgr.lock().unwrap();
+                    let translation = transform_mgr_lock.forward(transform_i) * *throttle * dt;
+                    transform_mgr_lock.translate(transform_i, translation);
+
+                    let forward = transform_mgr_lock.forward(transform_i);
+                    let forward_y_cos = forward.dot(Vector3::unit_y());
+                    let right = transform_mgr_lock.right(transform_i);
+                    let right_y_cos = right.dot(Vector3::unit_y());
+
+                    // drop(transform_mgr_lock);
+
+                    let current_pitch = forward_y_cos;
+                    let current_roll = right_y_cos;
+
+                    // Pitch
+                    // Input goes from -1 to 1. 0 means no input.
+                    // TODO: check performance of these comparisons (abs + float)
+                    if f32::abs(input_pitch) < 0.01 {
+                        if f32::abs(current_pitch) < 0.01 {
+                            input_pitch = 0.0;
+                            *pitch_speed = 0.0;
+                        } else {
+                            input_pitch = -f32::signum(*pitch_speed)
+                        }
+                    };
+                    *pitch_speed = Self::calculate_accumulated_speed(
+                        *pitch_speed,
+                        input_pitch,
+                        *pitch_acceleration,
+                        -*pitch_max_speed,
+                        *pitch_max_speed,
+                        dt,
+                    );
+
+                    // Yaw
+                    if f32::abs(input_yaw) < 0.01 {
+                        if f32::abs(*yaw_speed) < 0.01 {
+                            input_yaw = 0.0;
+                            *yaw_speed = 0.0;
+                        } else {
+                            input_yaw = -f32::signum(*yaw_speed);
+                        }
+                    }
+                    *yaw_speed = Self::calculate_accumulated_speed(
+                        *yaw_speed,
+                        input_yaw,
+                        *yaw_acceleration,
+                        -*yaw_max_speed,
+                        *yaw_max_speed,
+                        dt,
+                    );
+
+                    let mut pitch_delta = Rad(*pitch_speed * dt);
+                    let yaw_delta = Rad(*yaw_speed * dt);
+
+                    // Limit pitch
+                    let pitch_threshold: f32 = 0.9; // ~84.26 degrees
+                    let pitch_percent = f32::abs(current_pitch / pitch_threshold);
+                    if (current_pitch < -pitch_threshold && pitch_delta < Rad(0.0))
+                        || (current_pitch > pitch_threshold && pitch_delta > Rad(0.0))
+                    {
+                        pitch_delta = Rad(0.0);
+                        *pitch_speed = 0.0;
+                    }
+
+                    // Roll
+                    let roll_threshold: f32 = 0.2;
+                    let roll_delta = Rad(-current_roll
+                        + roll_threshold
+                            * f32::sin(
+                                HALF_PI * (*yaw_speed / *yaw_max_speed) * (1.0 - pitch_percent),
+                            ));
+
+                    // Set rotations
+                    let mut flat_right = right;
+                    flat_right.y = 0.0;
+                    flat_right = flat_right.normalize();
+
+                    let mut flat_forward = forward;
+                    flat_forward.y = 0.0;
+                    flat_forward = flat_forward.normalize();
+
+                    // let mut transform_mgr_lock = transform_mgr.lock().unwrap();
+                    transform_mgr_lock.rotate_around_axis(transform_i, flat_right, pitch_delta);
+                    transform_mgr_lock.rotate_around_axis(
+                        transform_i,
+                        Vector3::unit_y(),
+                        yaw_delta,
+                    );
+                    transform_mgr_lock.rotate_around_axis(transform_i, flat_forward, -roll_delta);
+                    drop(transform_mgr_lock);
+                }
+
+                // Update mesh renderer
+                // TODO: might be better off in render method
+                match mesh_renderer_i {
+                    Some(mesh_renderer_i) => {
+                        let position = transform_mgr.lock().unwrap().position[transform_i];
+                        let rotation = Quaternion::from_axis_angle(Vector3::unit_z(), Deg(0.0));
+                        mesh_renderer_mgr.lock().unwrap().update_instance_position(
+                            *mesh_renderer_i,
+                            position.to_vec(),
+                            rotation,
+                            &render_state,
+                        );
+                    }
+                    None => {}
+                };
+            },
+        );
+    }
+
+    pub fn update_lineal(
+        &mut self,
+        transform_mgr: &mut TransformMgr,
+        input_mgr: &mut AircraftInputMgr,
+        mesh_renderer_mgr: &mut MeshInstancedRendererMgr,
+        render_state: &RenderState,
+        dt: Duration,
+    ) {
         let dt = dt.as_secs_f32();
 
         for i in 0..self.len() {
             let transform_i = self.transform_i[i].unwrap();
             let input_i = self.input_i[i].unwrap();
 
+            // Get input
+            let input_throttle = input_mgr.input_throttle[input_i];
+            let input_reset_transform = input_mgr.input_reset_transform[input_i];
+            let mut input_pitch = input_mgr.input_pitch[input_i];
+            let mut input_yaw = input_mgr.input_yaw[input_i];
+            input_mgr.cleanup(input_i);
+
             // Throttle
-            self.throttle[i] = self.calculate_accumulated_speed(
+            self.throttle[i] = Self::calculate_accumulated_speed(
                 self.throttle[i],
-                input_mgr.input_throttle[input_i],
+                input_throttle,
                 self.acceleration[i],
                 self.min_speed[i],
                 self.max_speed[i],
@@ -181,8 +435,13 @@ impl AircraftMgr {
             );
 
             // Update transform
-            if input_mgr.input_reset_transform[input_i] {
-                self.reset_transform(i, transform_mgr);
+            if input_reset_transform {
+                Self::reset_transform(
+                    transform_i,
+                    self.start_position[i],
+                    self.start_rotation[i],
+                    transform_mgr,
+                );
             } else {
                 let translation = transform_mgr.forward(transform_i) * self.throttle[i] * dt;
                 transform_mgr.translate(transform_i, translation);
@@ -197,7 +456,6 @@ impl AircraftMgr {
 
                 // Pitch
                 // Input goes from -1 to 1. 0 means no input.
-                let mut input_pitch = input_mgr.input_pitch[input_i];
                 // TODO: check performance of these comparisons (abs + float)
                 if f32::abs(input_pitch) < 0.01 {
                     if f32::abs(current_pitch) < 0.01 {
@@ -207,7 +465,7 @@ impl AircraftMgr {
                         input_pitch = -f32::signum(self.pitch_speed[i])
                     }
                 };
-                self.pitch_speed[i] = self.calculate_accumulated_speed(
+                self.pitch_speed[i] = Self::calculate_accumulated_speed(
                     self.pitch_speed[i],
                     input_pitch,
                     self.pitch_acceleration[i],
@@ -217,7 +475,6 @@ impl AircraftMgr {
                 );
 
                 // Yaw
-                let mut input_yaw = input_mgr.input_yaw[input_i];
                 if f32::abs(input_yaw) < 0.01 {
                     if f32::abs(self.yaw_speed[i]) < 0.01 {
                         input_yaw = 0.0;
@@ -226,7 +483,7 @@ impl AircraftMgr {
                         input_yaw = -f32::signum(self.yaw_speed[i]);
                     }
                 }
-                self.yaw_speed[i] = self.calculate_accumulated_speed(
+                self.yaw_speed[i] = Self::calculate_accumulated_speed(
                     self.yaw_speed[i],
                     input_yaw,
                     self.yaw_acceleration[i],
@@ -272,8 +529,6 @@ impl AircraftMgr {
                 transform_mgr.rotate_around_axis(transform_i, flat_forward, -roll_delta);
             }
 
-            input_mgr.cleanup(input_i);
-
             // Update mesh renderer
             // TODO: might be better off in render method
             match self.mesh_renderer_i[i] {
@@ -293,7 +548,6 @@ impl AircraftMgr {
     }
 
     fn calculate_accumulated_speed(
-        &self,
         current_speed: f32,
         input: f32,
         acceleration: f32,
@@ -349,18 +603,27 @@ impl AircraftMgr {
             });
     }
 
-    fn reset_transform(&self, index: usize, transform_mgr: &mut TransformMgr) {
-        let transform_i = self.transform_i[index];
-
-        match transform_i {
-            Some(transform_i) => {
-                transform_mgr.position[transform_i] = self.start_position[index];
-                transform_mgr.rotation[transform_i] = self.start_rotation[index];
-            }
-            None => {}
-        }
+    fn reset_transform(
+        transform_i: usize,
+        start_position: Point3<f32>,
+        start_rotation: Quaternion<f32>,
+        transform_mgr: &mut TransformMgr,
+    ) {
+        transform_mgr.position[transform_i] = start_position;
+        transform_mgr.rotation[transform_i] = start_rotation;
     }
 }
+
+// impl<'data> IntoParallelRefMutIterator<'data> for AircraftMgr {
+//     // type Item = (&f32, &f32, &f32,&f32, &f32, &f32,&f32, &f32, &f32,&f32, &Point3<f32>, &Quaternion<f32>, );
+//     type Item = (&'data f32, &'data f32);
+
+//     type Iter = rayon::iter::Zip<rayon::vec::IntoIter<f32>, rayon::vec::IntoIter<f32>>;
+
+//     fn par_iter_mut(&'data mut self) -> Self::Iter {
+//         self.throttle.iter_mut().zip(self.max_speed.iter_mut())
+//     }
+// }
 
 #[derive(Clone)]
 pub enum AircraftPilot {

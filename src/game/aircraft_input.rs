@@ -154,29 +154,20 @@ impl AircraftInputMgr {
         }
 
         // Input yaw
+        let forward_distance_dot = forward.dot(distance_vector);
         let right_distance_dot = right.dot(distance_vector);
-        // Target is in front
-        if forward.dot(distance_vector) > 0.0 {
-            // Target is to the right
-            if right_distance_dot > 0.0 {
-                self.input_yaw[index] = 1.0;
-            }
-            // Target is to the left
-            else {
-                self.input_yaw[index] = -1.0;
-            }
-        }
-        // Target is behind
-        else {
-            // Target is to the right
-            if right_distance_dot > 0.0 {
-                self.input_yaw[index] = -1.0;
-            }
-            // Target is to the left
-            else {
-                self.input_yaw[index] = 1.0;
-            }
-        }
+
+        let cross = forward.cross(distance_vector);
+        let dot = cross.dot(Vector3::unit_y());
+
+        let y2 = f32::atan2(distance.y, distance.x);
+        self.input_yaw[index] = f32::signum(-y2);
+
+        // if f32::abs(dot - 1.0) < 0.01 {
+        //     self.input_yaw[index] = 0.0;
+        // } else {
+        //     self.input_yaw[index] = f32::signum(dot);
+        // }
 
         // Input throttle
         self.input_throttle[index] = 0.0;

@@ -32,6 +32,7 @@ async fn game_loop<'a>() {
             width: WINDOW_WIDTH,
             height: WINDOW_HEIGHT,
         })
+        .with_maximized(true)
         .build(&event_loop)
         .unwrap();
 

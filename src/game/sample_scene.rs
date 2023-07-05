@@ -78,9 +78,9 @@ pub async fn create(
             3.0,
             6.0,
             cgmath::Point3 {
-                x: 20.0,
+                x: 30.0,
                 y: 6.0,
-                z: 200.0,
+                z: 30.0,
             },
             cgmath::Quaternion::from_axis_angle(cgmath::Vector3::unit_z(), cgmath::Deg(0.0)),
             transform_mgr,
@@ -93,7 +93,7 @@ pub async fn create(
 
     let mut rng = oorandom::Rand32::new(1234);
 
-    for i in 0..1000 {
+    for i in 0..100 {
         aircraft_mgr
             .add(
                 AircraftPilot::Ai,

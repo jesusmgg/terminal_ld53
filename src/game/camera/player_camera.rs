@@ -17,7 +17,7 @@ impl PlayerCameraController {
         transform_mgr: &TransformMgr,
     ) {
         let i = aircraft_mgr.get_player_aircraft_index();
-        let i = 1;
+        let i = 2;
         let transform_i = aircraft_mgr.transform_i[i].unwrap();
 
         camera.set_from_transform_mgr(transform_mgr, transform_i);

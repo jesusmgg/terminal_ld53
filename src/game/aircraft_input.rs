@@ -1,3 +1,5 @@
+use std::time::Duration;
+
 use cgmath::{InnerSpace, Vector3};
 use winit::event::VirtualKeyCode;
 
@@ -19,8 +21,12 @@ pub struct AircraftInputMgr {
 
     pub input_reset_transform: Vec<bool>,
 
+    yaw_prev_dot: Vec<f32>,
+    yaw_prev_sign: Vec<f32>,
+
     pub aircraft_i: Vec<Option<usize>>,
 
+    // Height difference to maintain respect to target
     ai_target_y_diff: Vec<f32>,
 
     // TODO: make RNG app wide.
@@ -39,6 +45,10 @@ impl AircraftInputMgr {
             input_throttle: Vec::with_capacity(MAX_INSTANCE_COUNT),
 
             input_reset_transform: Vec::with_capacity(MAX_INSTANCE_COUNT),
+
+            // Previous update yaw dot product.
+            yaw_prev_dot: Vec::with_capacity(MAX_INSTANCE_COUNT),
+            yaw_prev_sign: Vec::with_capacity(MAX_INSTANCE_COUNT),
 
             aircraft_i: Vec::with_capacity(MAX_INSTANCE_COUNT),
 
@@ -59,6 +69,9 @@ impl AircraftInputMgr {
 
         self.input_reset_transform.push(false);
 
+        self.yaw_prev_dot.push(-1.0);
+        self.yaw_prev_sign.push(1.0);
+
         let ai_target_y_diff = self.rng.rand_range(1..20) as f32 + self.rng.rand_float();
         self.ai_target_y_diff.push(ai_target_y_diff);
 
@@ -74,20 +87,23 @@ impl AircraftInputMgr {
         keyboard_mgr: &KeyboardMgr,
         aircraft_mgr: &AircraftMgr,
         transform_mgr: &TransformMgr,
+        dt: Duration,
     ) {
+        let dt = dt.as_secs_f32();
+
         for i in 0..self.pilot_type.len() {
             match self.pilot_type[i] {
                 AircraftPilot::Player => {
-                    self.process_keyboard_input(keyboard_mgr, i);
+                    self.process_keyboard_input(keyboard_mgr, i, dt);
                 }
                 AircraftPilot::Ai => {
-                    self.process_ai_input(i, aircraft_mgr, transform_mgr);
+                    self.process_ai_input(i, aircraft_mgr, transform_mgr, dt);
                 }
             }
         }
     }
 
-    fn process_keyboard_input(&mut self, keyboard_mgr: &KeyboardMgr, index: usize) {
+    fn process_keyboard_input(&mut self, keyboard_mgr: &KeyboardMgr, index: usize, dt: f32) {
         // TODO: use integers for input
         let amount = 1.0;
 
@@ -124,6 +140,7 @@ impl AircraftInputMgr {
         index: usize,
         aircraft_mgr: &AircraftMgr,
         transform_mgr: &TransformMgr,
+        dt: f32,
     ) {
         // Get player data
         let player_aircraft_index = aircraft_mgr.get_player_aircraft_index();
@@ -138,39 +155,53 @@ impl AircraftInputMgr {
         let current_pitch = forward.dot(Vector3::unit_y());
         let right = transform_mgr.right(transform_index);
 
-        // Distances
-        let distance = player_position - position;
-        let distance_vector = distance.normalize();
-
         // Input pitch
-        if f32::abs(distance.y) < self.ai_target_y_diff[index] {
-            if f32::abs(current_pitch) > 0.01 {
-                self.input_pitch[index] = f32::signum(-current_pitch);
-            } else {
-                self.input_pitch[index] = 0.0;
-            }
+        let y_diff = position.y - player_position.y;
+        let min_y = 5.0;
+
+        if f32::abs(y_diff) > self.ai_target_y_diff[index] && position.y >= min_y {
+            self.input_pitch[index] =
+                -f32::signum(y_diff) * (1.0 - self.ai_target_y_diff[index] / y_diff);
+        } else if f32::abs(y_diff) <= self.ai_target_y_diff[index] && position.y >= min_y {
+            self.input_pitch[index] = -current_pitch;
+        } else if position.y < min_y {
+            self.input_pitch[index] = 1.0;
         } else {
-            self.input_pitch[index] = f32::signum(distance.y);
+            self.input_pitch[index] = 0.0;
         }
 
         // Input yaw
-        let forward_distance_dot = forward.dot(distance_vector);
-        let right_distance_dot = right.dot(distance_vector);
+        let distance = player_position - position;
+        let mut distance_flat = distance.clone();
+        distance_flat.y = 0.0;
+        distance_flat = distance_flat.normalize();
+        let mut forward_flat = forward.clone();
+        forward_flat.y = 0.0;
+        forward_flat = forward_flat.normalize();
 
-        let cross = forward.cross(distance_vector);
-        let dot = cross.dot(Vector3::unit_y());
+        let dot = distance_flat.dot(forward_flat);
 
-        let y2 = f32::atan2(distance.y, distance.x);
-        self.input_yaw[index] = f32::signum(-y2);
+        if dot < self.yaw_prev_dot[index] {
+            self.yaw_prev_sign[index] = -self.yaw_prev_sign[index];
+        }
+        self.yaw_prev_dot[index] = dot;
 
-        // if f32::abs(dot - 1.0) < 0.01 {
-        //     self.input_yaw[index] = 0.0;
-        // } else {
-        //     self.input_yaw[index] = f32::signum(dot);
-        // }
+        // If distance vector is parallel to forward
+        if dot < 0.99 {
+            self.input_yaw[index] = self.yaw_prev_sign[index];
+        } else {
+            self.input_yaw[index] = 0.0;
+        }
 
         // Input throttle
         self.input_throttle[index] = 0.0;
+
+        if index == 2 {
+            println!(
+                "y: {:.3}   target_y_diff: {:.3}   y_diff: {:.3}   input_pitch: {:.3}   dot: {:.3}   input_yaw: {:.3}",
+                position.y, self.ai_target_y_diff[index], y_diff, self.input_pitch[index], dot, self.input_yaw[index]
+            );
+        }
     }
 
     pub fn cleanup(&mut self, index: usize) {

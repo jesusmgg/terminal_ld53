@@ -283,18 +283,15 @@ impl AircraftMgr {
 
             // Update mesh renderer
             // TODO: might be better off in render method
-            match self.mesh_renderer_i[i] {
-                Some(mesh_renderer_i) => {
-                    let position = transform_mgr.position[transform_i];
-                    let rotation = Quaternion::from_axis_angle(Vector3::unit_z(), Deg(0.0));
-                    mesh_renderer_mgr.update_instance_position(
-                        mesh_renderer_i,
-                        position.to_vec(),
-                        rotation,
-                        &render_state,
-                    );
-                }
-                None => {}
+            if let Some(mesh_renderer_i) = self.mesh_renderer_i[i] {
+                let position = transform_mgr.position[transform_i];
+                let rotation = Quaternion::from_axis_angle(Vector3::unit_z(), Deg(0.0));
+                mesh_renderer_mgr.update_instance_position(
+                    mesh_renderer_i,
+                    position.to_vec(),
+                    rotation,
+                    render_state,
+                );
             };
 
             input_mgr.cleanup(input_i);

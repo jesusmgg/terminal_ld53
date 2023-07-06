@@ -2,14 +2,19 @@ use anyhow::Result;
 use cgmath::{EuclideanSpace, Point3, Quaternion};
 
 use crate::{
-    game::{mesh_renderer::MeshInstancedRendererMgr, transform::TransformMgr},
+    game::{
+        inventory::InventoryMgr, mesh_renderer::MeshInstancedRendererMgr, transform::TransformMgr,
+    },
     renderer::render_state::RenderState,
     resources,
 };
 
 const MAX_INSTANCE_COUNT: usize = 128;
+
 pub struct BuildingMgr {
     pub building_type: Vec<BuildingType>,
+
+    pub inventory_i: Vec<Option<usize>>,
 
     pub transform_i: Vec<Option<usize>>,
     pub mesh_renderer_i: Vec<Option<usize>>,
@@ -19,6 +24,8 @@ impl BuildingMgr {
     pub fn new() -> Self {
         Self {
             building_type: Vec::with_capacity(MAX_INSTANCE_COUNT),
+
+            inventory_i: Vec::with_capacity(MAX_INSTANCE_COUNT),
 
             transform_i: Vec::with_capacity(MAX_INSTANCE_COUNT),
             mesh_renderer_i: Vec::with_capacity(MAX_INSTANCE_COUNT),
@@ -33,11 +40,15 @@ impl BuildingMgr {
         position: Point3<f32>,
         rotation: Quaternion<f32>,
 
+        inventory_mgr: &mut InventoryMgr,
+
         transform_mgr: &mut TransformMgr,
         mesh_renderer_mgr: &mut MeshInstancedRendererMgr,
         render_state: &RenderState,
     ) -> Result<usize> {
         self.building_type.push(building_type.clone());
+
+        self.inventory_i.push(Some(inventory_mgr.add().unwrap()));
 
         self.transform_i
             .push(Some(transform_mgr.add(position, rotation)));

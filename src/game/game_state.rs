@@ -16,6 +16,7 @@ use super::{
     camera::player_camera::PlayerCameraController,
     diagnostics::{axis_renderer::AxisRendererMgr, on_screen_diagnostics::OnScreenDiagnostics},
     egui_manager::egui_renderer::EguiRenderer,
+    inventory::InventoryMgr,
     mesh_renderer::MeshInstancedRendererMgr,
     sample_scene,
     transform::TransformMgr,
@@ -32,8 +33,8 @@ pub struct GameState {
 
     aircraft_mgr: AircraftMgr,
     aircraft_input_mgr: AircraftInputMgr,
-
     building_mgr: BuildingMgr,
+    inventory_mgr: InventoryMgr,
 
     egui_renderer: EguiRenderer,
     on_screen_diagnostics: OnScreenDiagnostics,
@@ -62,14 +63,15 @@ impl GameState {
 
         let mut aircraft_mgr = AircraftMgr::new().unwrap();
         let mut aircraft_input_mgr = AircraftInputMgr::new();
-
         let mut building_mgr = BuildingMgr::new();
+        let mut inventory_mgr = InventoryMgr::new();
 
         sample_scene::create(
             &mut aircraft_mgr,
             &mut transform_mgr,
             &mut aircraft_input_mgr,
             &mut building_mgr,
+            &mut inventory_mgr,
             render_state,
             &mut mesh_instanced_renderer_mgr,
         )
@@ -86,8 +88,8 @@ impl GameState {
 
             aircraft_mgr,
             aircraft_input_mgr,
-
             building_mgr,
+            inventory_mgr,
 
             egui_renderer,
             on_screen_diagnostics,

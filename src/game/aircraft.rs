@@ -6,8 +6,8 @@ use cgmath::{Deg, EuclideanSpace, InnerSpace, Point3, Quaternion, Rad, Rotation3
 use crate::{renderer::render_state::RenderState, resources};
 
 use super::{
-    aircraft_input::AircraftInputMgr, mesh_renderer::MeshInstancedRendererMgr,
-    transform::TransformMgr,
+    aircraft_input::AircraftInputMgr, inventory::InventoryMgr,
+    mesh_renderer::MeshInstancedRendererMgr, transform::TransformMgr,
 };
 
 const MAX_INSTANCE_COUNT: usize = 128;
@@ -34,6 +34,8 @@ pub struct AircraftMgr {
     start_rotation: Vec<Quaternion<f32>>,
 
     // TODO: choose a safer way to store references
+    pub inventory_i: Vec<Option<usize>>,
+
     pub transform_i: Vec<Option<usize>>,
     pub input_i: Vec<Option<usize>>,
     pub mesh_renderer_i: Vec<Option<usize>>,
@@ -60,6 +62,8 @@ impl AircraftMgr {
             start_position: Vec::with_capacity(MAX_INSTANCE_COUNT),
             start_rotation: Vec::with_capacity(MAX_INSTANCE_COUNT),
 
+            inventory_i: Vec::with_capacity(MAX_INSTANCE_COUNT),
+
             transform_i: Vec::with_capacity(MAX_INSTANCE_COUNT),
             input_i: Vec::with_capacity(MAX_INSTANCE_COUNT),
             mesh_renderer_i: Vec::with_capacity(MAX_INSTANCE_COUNT),
@@ -83,6 +87,8 @@ impl AircraftMgr {
 
         start_position: Point3<f32>,
         start_rotation: Quaternion<f32>,
+
+        inventory_mgr: &mut InventoryMgr,
 
         transform_mgr: &mut TransformMgr,
         input_mgr: &mut AircraftInputMgr,
@@ -109,6 +115,8 @@ impl AircraftMgr {
         self.start_rotation.push(start_rotation);
 
         let index = self.len() - 1;
+
+        self.inventory_i.push(Some(inventory_mgr.add().unwrap()));
 
         self.transform_i
             .push(Some(transform_mgr.add(start_position, start_rotation)));

@@ -6,6 +6,7 @@ mod camera;
 mod diagnostics;
 mod egui_manager;
 pub mod game_state;
+mod inventory;
 mod mesh_renderer;
 mod sample_scene;
 pub mod transform;

@@ -51,12 +51,9 @@ impl BuildingMgr {
         .await
         .unwrap();
 
-        let mesh_renderer_i = Some(mesh_renderer_mgr.add(
-            render_state,
-            factory_model,
-            position.clone().to_vec(),
-            rotation,
-        ));
+        let mesh_renderer_i =
+            Some(mesh_renderer_mgr.add(render_state, factory_model, position.to_vec(), rotation));
+        self.mesh_renderer_i.push(mesh_renderer_i);
 
         let index = self.len() - 1;
         Ok(index)

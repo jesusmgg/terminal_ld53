@@ -130,6 +130,7 @@ pub async fn create(
     building_mgr
         .add(
             BuildingType::Factory,
+            Some(10.0),
             cgmath::Point3 {
                 x: 0.0,
                 y: 1.0,

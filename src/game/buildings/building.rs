@@ -15,6 +15,7 @@ pub struct BuildingMgr {
     pub building_type: Vec<BuildingType>,
 
     pub supply_range: Vec<Option<f32>>,
+    pub supply_period_ms: Vec<Option<u32>>,
 
     pub inventory_i: Vec<Option<usize>>,
 
@@ -27,6 +28,7 @@ impl BuildingMgr {
         Self {
             building_type: Vec::with_capacity(MAX_INSTANCE_COUNT),
             supply_range: Vec::with_capacity(MAX_INSTANCE_COUNT),
+            supply_period_ms: Vec::with_capacity(MAX_INSTANCE_COUNT),
 
             inventory_i: Vec::with_capacity(MAX_INSTANCE_COUNT),
 
@@ -41,6 +43,7 @@ impl BuildingMgr {
         building_type: BuildingType,
 
         supply_range: Option<f32>,
+        supply_period_ms: Option<u32>,
 
         position: Point3<f32>,
         rotation: Quaternion<f32>,
@@ -56,6 +59,7 @@ impl BuildingMgr {
         self.inventory_i.push(Some(inventory_mgr.add().unwrap()));
 
         self.supply_range.push(supply_range);
+        self.supply_period_ms.push(supply_period_ms);
 
         self.transform_i
             .push(Some(transform_mgr.add(position, rotation)));

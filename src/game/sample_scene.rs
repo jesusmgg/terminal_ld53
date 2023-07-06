@@ -131,6 +131,7 @@ pub async fn create(
         .add(
             BuildingType::Factory,
             Some(10.0),
+            Some(1000),
             cgmath::Point3 {
                 x: 0.0,
                 y: 1.0,

@@ -5,6 +5,7 @@ use crate::{renderer::render_state::RenderState, resources};
 use super::{
     aircraft::{AircraftMgr, AircraftPilot},
     aircraft_input::AircraftInputMgr,
+    buildings::building::{BuildingMgr, BuildingType},
     mesh_renderer::MeshInstancedRendererMgr,
     transform::TransformMgr,
 };
@@ -13,6 +14,7 @@ pub async fn create(
     aircraft_mgr: &mut AircraftMgr,
     transform_mgr: &mut TransformMgr,
     aircraft_input_mgr: &mut AircraftInputMgr,
+    building_mgr: &mut BuildingMgr,
     render_state: &RenderState,
     mesh_renderer_mgr: &mut MeshInstancedRendererMgr,
 ) {
@@ -93,7 +95,7 @@ pub async fn create(
 
     let mut rng = oorandom::Rand32::new(1234);
 
-    for i in 0..100 {
+    for i in 0..10 {
         aircraft_mgr
             .add(
                 AircraftPilot::Ai,
@@ -118,4 +120,21 @@ pub async fn create(
             .await
             .unwrap();
     }
+
+    // Buildings
+    building_mgr
+        .add(
+            BuildingType::Factory,
+            cgmath::Point3 {
+                x: 0.0,
+                y: 1.0,
+                z: 0.0,
+            },
+            cgmath::Quaternion::from_axis_angle(cgmath::Vector3::unit_z(), cgmath::Deg(0.0)),
+            transform_mgr,
+            mesh_renderer_mgr,
+            render_state,
+        )
+        .await
+        .unwrap();
 }

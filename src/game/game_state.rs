@@ -12,6 +12,7 @@ use super::{
     aircraft::AircraftMgr,
     aircraft_input::AircraftInputMgr,
     audio_test::AudioTest,
+    buildings::building::BuildingMgr,
     camera::player_camera::PlayerCameraController,
     diagnostics::{axis_renderer::AxisRendererMgr, on_screen_diagnostics::OnScreenDiagnostics},
     egui_manager::egui_renderer::EguiRenderer,
@@ -27,9 +28,12 @@ pub struct GameState {
     player_camera: PlayerCameraController,
     axis_renderer_mgr: AxisRendererMgr,
 
+    transform_mgr: TransformMgr,
+
     aircraft_mgr: AircraftMgr,
     aircraft_input_mgr: AircraftInputMgr,
-    transform_mgr: TransformMgr,
+
+    building_mgr: BuildingMgr,
 
     egui_renderer: EguiRenderer,
     on_screen_diagnostics: OnScreenDiagnostics,
@@ -54,14 +58,18 @@ impl GameState {
 
         let audio_test = AudioTest::new().await;
 
+        let mut transform_mgr = TransformMgr::new();
+
         let mut aircraft_mgr = AircraftMgr::new().unwrap();
         let mut aircraft_input_mgr = AircraftInputMgr::new();
-        let mut transform_mgr = TransformMgr::new();
+
+        let mut building_mgr = BuildingMgr::new();
 
         sample_scene::create(
             &mut aircraft_mgr,
             &mut transform_mgr,
             &mut aircraft_input_mgr,
+            &mut building_mgr,
             render_state,
             &mut mesh_instanced_renderer_mgr,
         )
@@ -74,9 +82,12 @@ impl GameState {
             player_camera,
             axis_renderer_mgr,
 
+            transform_mgr,
+
             aircraft_mgr,
             aircraft_input_mgr,
-            transform_mgr,
+
+            building_mgr,
 
             egui_renderer,
             on_screen_diagnostics,

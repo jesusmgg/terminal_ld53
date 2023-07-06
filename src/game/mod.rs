@@ -1,6 +1,7 @@
 mod aircraft;
 mod aircraft_input;
 mod audio_test;
+mod buildings;
 mod camera;
 mod diagnostics;
 mod egui_manager;

@@ -196,7 +196,8 @@ impl AircraftInputMgr {
         // Input throttle
         self.input_throttle[index] = 0.0;
 
-        if index == 2 {
+        // TODO: remove debug print
+        if false && index == 2 {
             println!(
                 "y: {:.3}   target_y_diff: {:.3}   y_diff: {:.3}   input_pitch: {:.3}   dot: {:.3}   input_yaw: {:.3}",
                 position.y, self.ai_target_y_diff[index], y_diff, self.input_pitch[index], dot, self.input_yaw[index]

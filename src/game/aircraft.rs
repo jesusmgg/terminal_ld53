@@ -1,4 +1,4 @@
-use std::time::Duration;
+use std::{f32::consts::FRAC_PI_2, time::Duration};
 
 use anyhow::Result;
 use cgmath::{Deg, EuclideanSpace, InnerSpace, Point3, Quaternion, Rad, Rotation3, Vector3};
@@ -11,8 +11,6 @@ use super::{
 };
 
 const MAX_INSTANCE_COUNT: usize = 128;
-
-const HALF_PI: f32 = 1.57079632679;
 
 /// Represents aircraft, both player and enemy.
 /// Aircraft index 0 is always the player.
@@ -138,7 +136,7 @@ impl AircraftMgr {
                 Some(mesh_renderer_mgr.add(
                     render_state,
                     aircraft_1_model,
-                    position.clone().to_vec(),
+                    position.to_vec(),
                     rotation,
                 ))
             }
@@ -262,7 +260,7 @@ impl AircraftMgr {
                 let roll_delta = Rad(-current_roll
                     + roll_threshold
                         * f32::sin(
-                            HALF_PI
+                            FRAC_PI_2
                                 * (self.yaw_speed[i] / self.yaw_max_speed[i])
                                 * (1.0 - pitch_percent),
                         ));

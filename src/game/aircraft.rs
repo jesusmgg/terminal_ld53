@@ -128,9 +128,7 @@ impl AircraftMgr {
         let rotation = transform_mgr.rotation[transform_i];
 
         let mesh_renderer_i = match pilot_type {
-            AircraftPilot::Player => None,
-
-            AircraftPilot::Ai => {
+            AircraftPilot::Player | AircraftPilot::Ai => {
                 // TODO: load model a single time and not for each aircraft instance.
                 let aircraft_1_model = resources::load_model_obj(
                     "models/Aircraft_1.obj",
@@ -162,6 +160,184 @@ impl AircraftMgr {
         self.pilot_type.len()
     }
 
+    pub fn update_player(
+        &mut self,
+        index: usize,
+        transform_mgr: &mut TransformMgr,
+        input_mgr: &mut AircraftInputMgr,
+        dt: f32,
+    ) {
+        let i = index;
+        let input_i = self.input_i[i].unwrap();
+        let transform_i = self.transform_i[i].unwrap();
+
+        // Get input
+        let input_throttle = input_mgr.input_throttle[input_i];
+        let input_reset_transform = input_mgr.input_reset_transform[input_i];
+        let mut input_pitch = input_mgr.input_pitch[input_i];
+        let mut input_yaw = input_mgr.input_yaw[input_i];
+
+        // Throttle
+        self.throttle[i] = Self::calculate_accumulated_speed(
+            self.throttle[i],
+            input_throttle,
+            self.acceleration[i],
+            self.min_speed[i],
+            self.max_speed[i],
+            dt,
+        );
+
+        // Update transform
+        if input_reset_transform {
+            Self::reset_transform(
+                transform_i,
+                self.start_position[i],
+                self.start_rotation[i],
+                transform_mgr,
+            );
+        } else {
+            let translation = transform_mgr.forward(transform_i) * self.throttle[i] * dt;
+            transform_mgr.translate(transform_i, translation);
+
+            let forward = transform_mgr.forward(transform_i);
+            let forward_y_cos = forward.dot(Vector3::unit_y());
+            let right = transform_mgr.right(transform_i);
+            let right_y_cos = right.dot(Vector3::unit_y());
+
+            let current_pitch = forward_y_cos;
+            let current_roll = right_y_cos;
+
+            // Pitch
+            // Input goes from -1 to 1. 0 means no input.
+            // TODO: check performance of these comparisons (abs + float)
+            if f32::abs(input_pitch) < 0.01 {
+                if f32::abs(current_pitch) < 0.01 {
+                    input_pitch = 0.0;
+                    self.pitch_speed[i] = 0.0;
+                } else {
+                    input_pitch = -f32::signum(self.pitch_speed[i])
+                }
+            };
+            self.pitch_speed[i] = Self::calculate_accumulated_speed(
+                self.pitch_speed[i],
+                input_pitch,
+                self.pitch_acceleration[i],
+                -self.pitch_max_speed[i],
+                self.pitch_max_speed[i],
+                dt,
+            );
+
+            // Yaw
+            if f32::abs(input_yaw) < 0.01 {
+                if f32::abs(self.yaw_speed[i]) < 0.01 {
+                    input_yaw = 0.0;
+                    self.yaw_speed[i] = 0.0;
+                } else {
+                    input_yaw = -f32::signum(self.yaw_speed[i]);
+                }
+            }
+            self.yaw_speed[i] = Self::calculate_accumulated_speed(
+                self.yaw_speed[i],
+                input_yaw,
+                self.yaw_acceleration[i],
+                -self.yaw_max_speed[i],
+                self.yaw_max_speed[i],
+                dt,
+            );
+
+            let mut pitch_delta = Rad(self.pitch_speed[i] * dt);
+            let yaw_delta = Rad(self.yaw_speed[i] * dt);
+
+            // Limit pitch
+            let pitch_threshold: f32 = 0.9; // ~84.26 degrees
+            let pitch_percent = f32::abs(current_pitch / pitch_threshold);
+            if (current_pitch < -pitch_threshold && pitch_delta < Rad(0.0))
+                || (current_pitch > pitch_threshold && pitch_delta > Rad(0.0))
+            {
+                pitch_delta = Rad(0.0);
+                self.pitch_speed[i] = 0.0;
+            }
+
+            // Roll
+            let roll_threshold: f32 = 0.2;
+            let roll_delta = Rad(-current_roll
+                + roll_threshold
+                    * f32::sin(
+                        FRAC_PI_2
+                            * (self.yaw_speed[i] / self.yaw_max_speed[i])
+                            * (1.0 - pitch_percent),
+                    ));
+
+            // Set rotations
+            let mut flat_right = right;
+            flat_right.y = 0.0;
+            flat_right = flat_right.normalize();
+
+            let mut flat_forward = forward;
+            flat_forward.y = 0.0;
+            flat_forward = flat_forward.normalize();
+
+            transform_mgr.rotate_around_axis(transform_i, flat_right, pitch_delta);
+            transform_mgr.rotate_around_axis(transform_i, Vector3::unit_y(), yaw_delta);
+            transform_mgr.rotate_around_axis(transform_i, flat_forward, -roll_delta);
+        }
+
+        input_mgr.cleanup(input_i);
+    }
+
+    pub fn update_ai(&mut self, index: usize, transform_mgr: &mut TransformMgr, dt: f32) {
+        let transform_i = self.transform_i[index].unwrap();
+        let position: Vector3<f32> = transform_mgr.position[transform_i].to_vec();
+        let position_flat = Vector3::new(position.x, 0.0, position.z);
+        let rotation = transform_mgr.rotation[transform_i];
+        let forward = transform_mgr.forward(transform_i);
+        let up = transform_mgr.up(transform_i);
+        let right = transform_mgr.right(transform_i);
+
+        let player_index = self.get_player_aircraft_index();
+        let player_transform_i = self.transform_i[player_index].unwrap();
+        let player_position: Vector3<f32> = transform_mgr.position[player_transform_i].to_vec();
+        let player_position_flat = Vector3::new(player_position.x, 0.0, player_position.z);
+        let player_rotation = transform_mgr.rotation[player_transform_i];
+
+        // Get rotation to player direction
+        let direction = player_position - position;
+        let direction_flat = player_position_flat - position_flat;
+        // let rotation_quat = Quaternion::from_arc(forward, direction.normalize(), None).normalize();
+        // let up_quat = Quaternion::from_arc(up, Vector3::unit_y(), None).normalize();
+        // let mut target_quat = rotation * rotation_quat;
+        // target_quat = target_quat * up_quat;
+
+        // Lerp towards that direction
+        // if index == 1 {
+        // println!("rotation_quat: {:?}", &rotation_quat);
+        // }
+        // let new_rotation = rotation.normalize().slerp(target_quat, dt);
+        // if rotation.dot(target_quat) < -0.8 {
+        // target_quat = -target_quat;
+        // }
+        // let new_rotation = (rotation * (1.0 - dt) + target_quat * dt).normalize();
+
+        let direction_yaw = Vector3::new(direction.x, 0.0, direction.z).normalize();
+        let yaw_rotation = Quaternion::from_arc(forward, direction_yaw, None);
+        let target_yaw_rotation = rotation * yaw_rotation;
+        // let new_rotation = rotation.normalize().nlerp(target_yaw_rotation, dt);
+
+        let mut target_y = position + forward * direction_flat.magnitude();
+        target_y.y = player_position.y;
+        let direction_pitch = target_y - position;
+        let pitch_rotation = Quaternion::from_arc(forward, direction_pitch, None);
+
+        let target_rotation = rotation * yaw_rotation;
+        let new_rotation = rotation.normalize().nlerp(target_rotation.normalize(), dt);
+
+        transform_mgr.rotation[transform_i] = new_rotation;
+
+        // Translation
+        let translation = transform_mgr.forward(transform_i) * 0.0 * dt;
+        transform_mgr.translate(transform_i, translation);
+    }
+
     pub fn update(
         &mut self,
         transform_mgr: &mut TransformMgr,
@@ -174,117 +350,10 @@ impl AircraftMgr {
 
         for i in 0..self.len() {
             let transform_i = self.transform_i[i].unwrap();
-            let input_i = self.input_i[i].unwrap();
 
-            // Get input
-            let input_throttle = input_mgr.input_throttle[input_i];
-            let input_reset_transform = input_mgr.input_reset_transform[input_i];
-            let mut input_pitch = input_mgr.input_pitch[input_i];
-            let mut input_yaw = input_mgr.input_yaw[input_i];
-
-            // Throttle
-            self.throttle[i] = Self::calculate_accumulated_speed(
-                self.throttle[i],
-                input_throttle,
-                self.acceleration[i],
-                self.min_speed[i],
-                self.max_speed[i],
-                dt,
-            );
-
-            // Update transform
-            if input_reset_transform {
-                Self::reset_transform(
-                    transform_i,
-                    self.start_position[i],
-                    self.start_rotation[i],
-                    transform_mgr,
-                );
-            } else {
-                let translation = transform_mgr.forward(transform_i) * self.throttle[i] * dt;
-                transform_mgr.translate(transform_i, translation);
-
-                let forward = transform_mgr.forward(transform_i);
-                let forward_y_cos = forward.dot(Vector3::unit_y());
-                let right = transform_mgr.right(transform_i);
-                let right_y_cos = right.dot(Vector3::unit_y());
-
-                let current_pitch = forward_y_cos;
-                let current_roll = right_y_cos;
-
-                // Pitch
-                // Input goes from -1 to 1. 0 means no input.
-                // TODO: check performance of these comparisons (abs + float)
-                if f32::abs(input_pitch) < 0.01 {
-                    if f32::abs(current_pitch) < 0.01 {
-                        input_pitch = 0.0;
-                        self.pitch_speed[i] = 0.0;
-                    } else {
-                        input_pitch = -f32::signum(self.pitch_speed[i])
-                    }
-                };
-                self.pitch_speed[i] = Self::calculate_accumulated_speed(
-                    self.pitch_speed[i],
-                    input_pitch,
-                    self.pitch_acceleration[i],
-                    -self.pitch_max_speed[i],
-                    self.pitch_max_speed[i],
-                    dt,
-                );
-
-                // Yaw
-                if f32::abs(input_yaw) < 0.01 {
-                    if f32::abs(self.yaw_speed[i]) < 0.01 {
-                        input_yaw = 0.0;
-                        self.yaw_speed[i] = 0.0;
-                    } else {
-                        input_yaw = -f32::signum(self.yaw_speed[i]);
-                    }
-                }
-                self.yaw_speed[i] = Self::calculate_accumulated_speed(
-                    self.yaw_speed[i],
-                    input_yaw,
-                    self.yaw_acceleration[i],
-                    -self.yaw_max_speed[i],
-                    self.yaw_max_speed[i],
-                    dt,
-                );
-
-                let mut pitch_delta = Rad(self.pitch_speed[i] * dt);
-                let yaw_delta = Rad(self.yaw_speed[i] * dt);
-
-                // Limit pitch
-                let pitch_threshold: f32 = 0.9; // ~84.26 degrees
-                let pitch_percent = f32::abs(current_pitch / pitch_threshold);
-                if (current_pitch < -pitch_threshold && pitch_delta < Rad(0.0))
-                    || (current_pitch > pitch_threshold && pitch_delta > Rad(0.0))
-                {
-                    pitch_delta = Rad(0.0);
-                    self.pitch_speed[i] = 0.0;
-                }
-
-                // Roll
-                let roll_threshold: f32 = 0.2;
-                let roll_delta = Rad(-current_roll
-                    + roll_threshold
-                        * f32::sin(
-                            FRAC_PI_2
-                                * (self.yaw_speed[i] / self.yaw_max_speed[i])
-                                * (1.0 - pitch_percent),
-                        ));
-
-                // Set rotations
-                let mut flat_right = right;
-                flat_right.y = 0.0;
-                flat_right = flat_right.normalize();
-
-                let mut flat_forward = forward;
-                flat_forward.y = 0.0;
-                flat_forward = flat_forward.normalize();
-
-                transform_mgr.rotate_around_axis(transform_i, flat_right, pitch_delta);
-                transform_mgr.rotate_around_axis(transform_i, Vector3::unit_y(), yaw_delta);
-                transform_mgr.rotate_around_axis(transform_i, flat_forward, -roll_delta);
+            match self.pilot_type[i] {
+                AircraftPilot::Player => self.update_player(i, transform_mgr, input_mgr, dt),
+                AircraftPilot::Ai => self.update_ai(i, transform_mgr, dt),
             }
 
             // Update mesh renderer
@@ -299,8 +368,6 @@ impl AircraftMgr {
                     render_state,
                 );
             };
-
-            input_mgr.cleanup(input_i);
         }
     }
 

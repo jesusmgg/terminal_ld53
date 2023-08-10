@@ -82,13 +82,7 @@ impl AircraftInputMgr {
         self.pilot_type.len()
     }
 
-    pub fn update(
-        &mut self,
-        keyboard_mgr: &KeyboardMgr,
-        aircraft_mgr: &AircraftMgr,
-        transform_mgr: &TransformMgr,
-        dt: Duration,
-    ) {
+    pub fn update(&mut self, keyboard_mgr: &KeyboardMgr, dt: Duration) {
         let dt = dt.as_secs_f32();
 
         for i in 0..self.pilot_type.len() {
@@ -96,9 +90,7 @@ impl AircraftInputMgr {
                 AircraftPilot::Player => {
                     self.process_keyboard_input(keyboard_mgr, i, dt);
                 }
-                AircraftPilot::Ai => {
-                    self.process_ai_input(i, aircraft_mgr, transform_mgr, dt);
-                }
+                AircraftPilot::Ai => {}
             }
         }
     }
@@ -133,76 +125,6 @@ impl AircraftInputMgr {
 
         // Other
         self.input_reset_transform[index] = keyboard_mgr.key_down[VirtualKeyCode::R as usize];
-    }
-
-    fn process_ai_input(
-        &mut self,
-        index: usize,
-        aircraft_mgr: &AircraftMgr,
-        transform_mgr: &TransformMgr,
-        dt: f32,
-    ) {
-        // Get player data
-        let player_aircraft_index = aircraft_mgr.get_player_aircraft_index();
-        let player_transform_index = aircraft_mgr.transform_i[player_aircraft_index].unwrap();
-        let player_position = transform_mgr.position[player_transform_index];
-
-        // Get own data
-        let aircraft_index = self.aircraft_i[index].unwrap();
-        let transform_index = aircraft_mgr.transform_i[aircraft_index].unwrap();
-        let position = transform_mgr.position[transform_index];
-        let forward = transform_mgr.forward(transform_index);
-        let current_pitch = forward.dot(Vector3::unit_y());
-        let right = transform_mgr.right(transform_index);
-
-        // Input pitch
-        let y_diff = position.y - player_position.y;
-        let min_y = 5.0;
-
-        if f32::abs(y_diff) > self.ai_target_y_diff[index] && position.y >= min_y {
-            self.input_pitch[index] =
-                -f32::signum(y_diff) * (1.0 - self.ai_target_y_diff[index] / y_diff);
-        } else if f32::abs(y_diff) <= self.ai_target_y_diff[index] && position.y >= min_y {
-            self.input_pitch[index] = -current_pitch;
-        } else if position.y < min_y {
-            self.input_pitch[index] = 1.0;
-        } else {
-            self.input_pitch[index] = 0.0;
-        }
-
-        // Input yaw
-        let distance = player_position - position;
-        let mut distance_flat = distance.clone();
-        distance_flat.y = 0.0;
-        distance_flat = distance_flat.normalize();
-        let mut forward_flat = forward.clone();
-        forward_flat.y = 0.0;
-        forward_flat = forward_flat.normalize();
-
-        let dot = distance_flat.dot(forward_flat);
-
-        if dot < self.yaw_prev_dot[index] {
-            self.yaw_prev_sign[index] = -self.yaw_prev_sign[index];
-        }
-        self.yaw_prev_dot[index] = dot;
-
-        // If distance vector is parallel to forward
-        if dot < 0.99 {
-            self.input_yaw[index] = self.yaw_prev_sign[index];
-        } else {
-            self.input_yaw[index] = 0.0;
-        }
-
-        // Input throttle
-        self.input_throttle[index] = 0.0;
-
-        // TODO: remove debug print
-        if false && index == 2 {
-            println!(
-                "y: {:.3}   target_y_diff: {:.3}   y_diff: {:.3}   input_pitch: {:.3}   dot: {:.3}   input_yaw: {:.3}",
-                position.y, self.ai_target_y_diff[index], y_diff, self.input_pitch[index], dot, self.input_yaw[index]
-            );
-        }
     }
 
     pub fn cleanup(&mut self, index: usize) {

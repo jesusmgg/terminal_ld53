@@ -1,6 +1,5 @@
 use std::time::Duration;
 
-use cgmath::{InnerSpace, Vector3};
 use winit::event::VirtualKeyCode;
 
 use crate::input::keyboard_manager::KeyboardMgr;

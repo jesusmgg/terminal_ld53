@@ -1,10 +1,7 @@
 use std::{f32::consts::FRAC_PI_2, time::Duration};
 
 use anyhow::Result;
-use cgmath::{
-    Deg, EuclideanSpace, InnerSpace, Matrix3, Matrix4, Point3, Quaternion, Rad, Rotation,
-    Rotation3, Vector3,
-};
+use cgmath::{Deg, EuclideanSpace, InnerSpace, Point3, Quaternion, Rad, Rotation3, Vector3};
 
 use crate::{renderer::render_state::RenderState, resources};
 
@@ -292,53 +289,38 @@ impl AircraftMgr {
         let transform_i = self.transform_i[index].unwrap();
         let position_point = transform_mgr.position[transform_i];
         let position = position_point.to_vec();
-        let position_flat = Vector3::new(position.x, 0.0, position.z);
         let rotation = transform_mgr.rotation[transform_i];
-        let forward = transform_mgr.forward(transform_i);
-        let up = transform_mgr.up(transform_i);
-        let right = transform_mgr.right(transform_i);
+        let mut forward = transform_mgr.forward(transform_i);
 
         let player_index = self.get_player_aircraft_index();
         let player_transform_i = self.transform_i[player_index].unwrap();
         let player_position: Vector3<f32> = transform_mgr.position[player_transform_i].to_vec();
-        let player_position_flat = Vector3::new(player_position.x, 0.0, player_position.z);
-        let player_rotation = transform_mgr.rotation[player_transform_i];
+        let player_position_leveled =
+            Vector3::new(player_position.x, position.y, player_position.z);
 
-        // Get rotation to player direction
-        let up_dot = up.dot(Vector3::unit_y());
-        let direction = player_position - position;
-        if up_dot > 0.9 {
-            let direction_flat = player_position_flat - position_flat;
-            let rotation_quat = Quaternion::from_arc(forward, direction.normalize(), None);
-            let target_rotation = rotation * rotation_quat;
+        // Horizontal rotation towards player direction
+        let direction_leveled = player_position_leveled - position;
+        let rotation_quat = Quaternion::from_arc(forward, direction_leveled.normalize(), None);
+        let target_rotation = rotation * rotation_quat;
 
-            let new_rotation = rotation
-                .normalize()
-                .slerp(target_rotation.normalize(), 3.0 * dt);
+        let new_rotation = rotation
+            .normalize()
+            .slerp(target_rotation.normalize(), 3.0 * dt);
 
-            // Lerp towards that direction
-            transform_mgr.rotation[transform_i] = new_rotation;
+        transform_mgr.rotation[transform_i] = new_rotation;
+
+        // Vertical translation
+        let y_diff = player_position.y - position.y;
+        forward.y = if f32::abs(y_diff) > 0.5 {
+            f32::signum(y_diff)
         } else {
-            let up_quat = Quaternion::from_arc(up, Vector3::unit_y(), None);
-            let target_rotation = rotation * up_quat;
-            let new_rotation = rotation.normalize().slerp(target_rotation.normalize(), dt);
+            0.0
+        };
 
-            // Lerp towards that direction
-            transform_mgr.rotation[transform_i] = new_rotation;
-        }
-
-        // Translation
-        let speed =
-            (direction.magnitude2() / 100.0).clamp(self.min_speed[index], self.max_speed[index]);
-        if index == 1 {
-            println!(
-                "speed: {:?}, dot: {:?}, distance: {:?}",
-                speed,
-                up_dot,
-                direction.magnitude()
-            );
-        }
-        let translation = transform_mgr.forward(transform_i) * speed * dt;
+        // Throttle
+        let speed = (direction_leveled.magnitude2() / 100.0)
+            .clamp(self.min_speed[index], self.max_speed[index]);
+        let translation = forward * speed * dt;
         transform_mgr.translate(transform_i, translation);
     }
 

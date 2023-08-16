@@ -1,7 +1,10 @@
 use std::{f32::consts::FRAC_PI_2, time::Duration};
 
 use anyhow::Result;
-use cgmath::{Deg, EuclideanSpace, InnerSpace, Point3, Quaternion, Rad, Rotation3, Vector3};
+use cgmath::{
+    Deg, EuclideanSpace, InnerSpace, Matrix3, Matrix4, Point3, Quaternion, Rad, Rotation,
+    Rotation3, Vector3,
+};
 
 use crate::{renderer::render_state::RenderState, resources};
 
@@ -287,7 +290,8 @@ impl AircraftMgr {
 
     pub fn update_ai(&mut self, index: usize, transform_mgr: &mut TransformMgr, dt: f32) {
         let transform_i = self.transform_i[index].unwrap();
-        let position: Vector3<f32> = transform_mgr.position[transform_i].to_vec();
+        let position_point = transform_mgr.position[transform_i];
+        let position = position_point.to_vec();
         let position_flat = Vector3::new(position.x, 0.0, position.z);
         let rotation = transform_mgr.rotation[transform_i];
         let forward = transform_mgr.forward(transform_i);
@@ -301,40 +305,40 @@ impl AircraftMgr {
         let player_rotation = transform_mgr.rotation[player_transform_i];
 
         // Get rotation to player direction
+        let up_dot = up.dot(Vector3::unit_y());
         let direction = player_position - position;
-        let direction_flat = player_position_flat - position_flat;
-        // let rotation_quat = Quaternion::from_arc(forward, direction.normalize(), None).normalize();
-        // let up_quat = Quaternion::from_arc(up, Vector3::unit_y(), None).normalize();
-        // let mut target_quat = rotation * rotation_quat;
-        // target_quat = target_quat * up_quat;
+        if up_dot > 0.9 {
+            let direction_flat = player_position_flat - position_flat;
+            let rotation_quat = Quaternion::from_arc(forward, direction.normalize(), None);
+            let target_rotation = rotation * rotation_quat;
 
-        // Lerp towards that direction
-        // if index == 1 {
-        // println!("rotation_quat: {:?}", &rotation_quat);
-        // }
-        // let new_rotation = rotation.normalize().slerp(target_quat, dt);
-        // if rotation.dot(target_quat) < -0.8 {
-        // target_quat = -target_quat;
-        // }
-        // let new_rotation = (rotation * (1.0 - dt) + target_quat * dt).normalize();
+            let new_rotation = rotation
+                .normalize()
+                .slerp(target_rotation.normalize(), 3.0 * dt);
 
-        let direction_yaw = Vector3::new(direction.x, 0.0, direction.z).normalize();
-        let yaw_rotation = Quaternion::from_arc(forward, direction_yaw, None);
-        let target_yaw_rotation = rotation * yaw_rotation;
-        // let new_rotation = rotation.normalize().nlerp(target_yaw_rotation, dt);
+            // Lerp towards that direction
+            transform_mgr.rotation[transform_i] = new_rotation;
+        } else {
+            let up_quat = Quaternion::from_arc(up, Vector3::unit_y(), None);
+            let target_rotation = rotation * up_quat;
+            let new_rotation = rotation.normalize().slerp(target_rotation.normalize(), dt);
 
-        let mut target_y = position + forward * direction_flat.magnitude();
-        target_y.y = player_position.y;
-        let direction_pitch = target_y - position;
-        let pitch_rotation = Quaternion::from_arc(forward, direction_pitch, None);
-
-        let target_rotation = rotation * yaw_rotation;
-        let new_rotation = rotation.normalize().nlerp(target_rotation.normalize(), dt);
-
-        transform_mgr.rotation[transform_i] = new_rotation;
+            // Lerp towards that direction
+            transform_mgr.rotation[transform_i] = new_rotation;
+        }
 
         // Translation
-        let translation = transform_mgr.forward(transform_i) * 0.0 * dt;
+        let speed =
+            (direction.magnitude2() / 100.0).clamp(self.min_speed[index], self.max_speed[index]);
+        if index == 1 {
+            println!(
+                "speed: {:?}, dot: {:?}, distance: {:?}",
+                speed,
+                up_dot,
+                direction.magnitude()
+            );
+        }
+        let translation = transform_mgr.forward(transform_i) * speed * dt;
         transform_mgr.translate(transform_i, translation);
     }
 

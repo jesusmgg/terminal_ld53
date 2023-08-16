@@ -76,7 +76,7 @@ pub async fn create(
         .add(
             AircraftPilot::Ai,
             20.0,
-            10.0,
+            1.0,
             5.0,
             5.0,
             10.0,
@@ -87,7 +87,7 @@ pub async fn create(
                 y: 6.0,
                 z: 30.0,
             },
-            cgmath::Quaternion::from_axis_angle(cgmath::Vector3::unit_x(), cgmath::Deg(40.0)),
+            cgmath::Quaternion::from_axis_angle(cgmath::Vector3::unit_x(), cgmath::Deg(00.0)),
             inventory_mgr,
             transform_mgr,
             aircraft_input_mgr,
@@ -104,7 +104,7 @@ pub async fn create(
             .add(
                 AircraftPilot::Ai,
                 20.0,
-                10.0,
+                1.0,
                 5.0,
                 5.0,
                 10.0,

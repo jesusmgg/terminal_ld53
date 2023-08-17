@@ -346,7 +346,7 @@ impl AircraftMgr {
             // TODO: might be better off in render method
             if let Some(mesh_renderer_i) = self.mesh_renderer_i[i] {
                 let position = transform_mgr.position[transform_i];
-                let rotation = Quaternion::from_axis_angle(Vector3::unit_z(), Deg(0.0));
+                let rotation = transform_mgr.rotation[transform_i];
                 mesh_renderer_mgr.update_instance_position(
                     mesh_renderer_i,
                     position.to_vec(),

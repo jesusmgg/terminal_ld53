@@ -3,7 +3,7 @@ use std::{f32::consts::FRAC_PI_2, time::Duration};
 use anyhow::Result;
 use cgmath::{Deg, EuclideanSpace, InnerSpace, Point3, Quaternion, Rad, Rotation3, Vector3};
 
-use crate::{renderer::render_state::RenderState, resources};
+use crate::{collision::collider::ColliderMgr, renderer::render_state::RenderState, resources};
 
 use super::{
     aircraft_input::AircraftInputMgr, inventory::InventoryMgr,
@@ -37,6 +37,7 @@ pub struct AircraftMgr {
     pub inventory_i: Vec<Option<usize>>,
 
     pub transform_i: Vec<Option<usize>>,
+    pub collider_i: Vec<Option<usize>>,
     pub input_i: Vec<Option<usize>>,
     pub mesh_renderer_i: Vec<Option<usize>>,
 }
@@ -65,6 +66,7 @@ impl AircraftMgr {
             inventory_i: Vec::with_capacity(MAX_INSTANCE_COUNT),
 
             transform_i: Vec::with_capacity(MAX_INSTANCE_COUNT),
+            collider_i: Vec::with_capacity(MAX_INSTANCE_COUNT),
             input_i: Vec::with_capacity(MAX_INSTANCE_COUNT),
             mesh_renderer_i: Vec::with_capacity(MAX_INSTANCE_COUNT),
         })
@@ -91,6 +93,7 @@ impl AircraftMgr {
         inventory_mgr: &mut InventoryMgr,
 
         transform_mgr: &mut TransformMgr,
+        collider_mgr: &mut ColliderMgr,
         input_mgr: &mut AircraftInputMgr,
         mesh_renderer_mgr: &mut MeshInstancedRendererMgr,
 
@@ -127,25 +130,28 @@ impl AircraftMgr {
         let position = transform_mgr.position[transform_i];
         let rotation = transform_mgr.rotation[transform_i];
 
-        let mesh_renderer_i = match pilot_type {
-            AircraftPilot::Player | AircraftPilot::Ai => {
-                // TODO: load model a single time and not for each aircraft instance.
-                let aircraft_1_model = resources::load_model_obj(
-                    "models/Aircraft_1.obj",
-                    &render_state.device,
-                    &render_state.queue,
-                    &mesh_renderer_mgr.texture_bind_group_layout,
-                )
-                .await
-                .unwrap();
+        // TODO: load model a single time and not for each aircraft instance.
+        let aircraft_1_model = resources::load_model_obj(
+            "models/Aircraft_1.obj",
+            &render_state.device,
+            &render_state.queue,
+            &mesh_renderer_mgr.texture_bind_group_layout,
+        )
+        .await
+        .unwrap();
+        self.collider_i.push(Some(
+            collider_mgr
+                .add_from_model(&aircraft_1_model, transform_i)
+                .unwrap(),
+        ));
 
-                Some(mesh_renderer_mgr.add(
-                    render_state,
-                    aircraft_1_model,
-                    position.to_vec(),
-                    rotation,
-                ))
-            }
+        let mesh_renderer_i = match pilot_type {
+            AircraftPilot::Player | AircraftPilot::Ai => Some(mesh_renderer_mgr.add(
+                render_state,
+                aircraft_1_model,
+                position.to_vec(),
+                rotation,
+            )),
         };
         self.mesh_renderer_i.push(mesh_renderer_i);
 
@@ -320,6 +326,7 @@ impl AircraftMgr {
         // Throttle
         let speed = (direction_leveled.magnitude2() / 100.0)
             .clamp(self.min_speed[index], self.max_speed[index]);
+        let speed = 0.0;
         let translation = forward * speed * dt;
         transform_mgr.translate(transform_i, translation);
     }
@@ -381,15 +388,25 @@ impl AircraftMgr {
         speed
     }
 
-    pub fn ui(&self, transform_mgr: &TransformMgr, context: &egui::Context) {
+    pub fn ui(
+        &self,
+        transform_mgr: &TransformMgr,
+        collider_mgr: &ColliderMgr,
+        context: &egui::Context,
+    ) {
         // Print player aircraft debug info
         let index = self.get_player_aircraft_index();
+        let transform_i = self.transform_i[index].unwrap();
+        let collider_i = self.collider_i[index].unwrap();
+
         let throttle = self.throttle[index];
-        let position = transform_mgr.position[index];
-        let rotation = transform_mgr.rotation[index];
-        let forward = transform_mgr.forward(index);
-        let up = transform_mgr.up(index);
-        let right = transform_mgr.right(index);
+        let position = transform_mgr.position[transform_i];
+        let rotation = transform_mgr.rotation[transform_i];
+        let forward = transform_mgr.forward(transform_i);
+        let up = transform_mgr.up(transform_i);
+        let right = transform_mgr.right(transform_i);
+
+        let colliding_indices = collider_mgr.colliding_indices[collider_i];
 
         let throttle_str = format!("Throttle: {:?}", throttle);
         let position_str = format!("Position: {:?}", position);
@@ -397,6 +414,7 @@ impl AircraftMgr {
         let forward_str = format!("Forward: {:?}", forward);
         let up_str = format!("Up: {:?}", up);
         let right_str = format!("Right: {:?}", right);
+        let collisions_str = format!("Colliding indices: {:?}", colliding_indices);
 
         egui::SidePanel::left("Player Aircraft")
             .resizable(false)
@@ -410,6 +428,7 @@ impl AircraftMgr {
                 ui.label(forward_str);
                 ui.label(up_str);
                 ui.label(right_str);
+                ui.label(collisions_str);
             });
     }
 

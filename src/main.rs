@@ -1,4 +1,5 @@
 mod audio;
+mod collision;
 mod game;
 mod input;
 mod renderer;

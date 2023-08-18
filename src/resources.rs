@@ -1,4 +1,3 @@
-use gltf::Gltf;
 use kira::sound::static_sound::StaticSoundData;
 use kira::sound::static_sound::StaticSoundSettings;
 use std::io::{BufReader, Cursor};
@@ -84,6 +83,13 @@ pub async fn load_model_obj(
         ));
     }
 
+    let mut model_min_x = f32::MAX;
+    let mut model_min_y = f32::MAX;
+    let mut model_min_z = f32::MAX;
+    let mut model_max_x = f32::MIN;
+    let mut model_max_y = f32::MIN;
+    let mut model_max_z = f32::MIN;
+
     let meshes = models
         .into_iter()
         .map(|m| {
@@ -108,9 +114,17 @@ pub async fn load_model_obj(
             let indices = &m.mesh.indices;
             let mut triangles_included = vec![0; vertices.len()];
 
+            let mut min_x = f32::MAX;
+            let mut min_y = f32::MAX;
+            let mut min_z = f32::MAX;
+            let mut max_x = f32::MIN;
+            let mut max_y = f32::MIN;
+            let mut max_z = f32::MIN;
+
             // Calculate tangents and bitangets. We're going to use the triangles,
             // so we need to loop through the indices in chunks of 3
             // https://sotrh.github.io/learn-wgpu/intermediate/tutorial11-normals/#the-tangent-and-the-bitangent
+            // Also take this opportunity to get min and max positions.
             for c in indices.chunks(3) {
                 let v0 = vertices[c[0] as usize];
                 let v1 = vertices[c[1] as usize];
@@ -161,6 +175,26 @@ pub async fn load_model_obj(
                 triangles_included[c[0] as usize] += 1;
                 triangles_included[c[1] as usize] += 1;
                 triangles_included[c[2] as usize] += 1;
+
+                // Get min/max positions
+                min_x = f32::min(min_x, pos0.x);
+                min_x = f32::min(min_x, pos1.x);
+                min_x = f32::min(min_x, pos2.x);
+                min_y = f32::min(min_y, pos0.y);
+                min_y = f32::min(min_y, pos1.y);
+                min_y = f32::min(min_y, pos2.y);
+                min_z = f32::min(min_z, pos0.z);
+                min_z = f32::min(min_z, pos1.z);
+                min_z = f32::min(min_z, pos2.z);
+                max_x = f32::max(max_x, pos0.x);
+                max_x = f32::max(max_x, pos1.x);
+                max_x = f32::max(max_x, pos2.x);
+                max_y = f32::max(max_y, pos0.y);
+                max_y = f32::max(max_y, pos1.y);
+                max_y = f32::max(max_y, pos2.y);
+                max_z = f32::max(max_z, pos0.z);
+                max_z = f32::max(max_z, pos1.z);
+                max_z = f32::max(max_z, pos2.z);
             }
 
             // Average the tangents/bitangents
@@ -182,17 +216,41 @@ pub async fn load_model_obj(
                 usage: wgpu::BufferUsages::INDEX,
             });
 
+            // Get model min/max positions
+            model_min_x = f32::min(min_x, model_min_x);
+            model_min_y = f32::min(min_y, model_min_y);
+            model_min_z = f32::min(min_z, model_min_z);
+            model_max_x = f32::max(max_x, model_max_x);
+            model_max_y = f32::max(max_y, model_max_y);
+            model_max_z = f32::max(max_z, model_max_z);
+
             model::Mesh {
                 name: file_name.to_string(),
                 vertex_buffer,
                 index_buffer,
                 num_elements: m.mesh.indices.len() as u32,
                 material: m.mesh.material_id.unwrap_or(0),
+
+                min_x,
+                min_y,
+                min_z,
+                max_x,
+                max_y,
+                max_z,
             }
         })
         .collect::<Vec<_>>();
 
-    Ok(model::Model { meshes, materials })
+    Ok(model::Model {
+        meshes,
+        materials,
+        min_x: model_min_x,
+        min_y: model_min_y,
+        min_z: model_min_z,
+        max_x: model_max_x,
+        max_y: model_max_y,
+        max_z: model_max_z,
+    })
 }
 
 // TODO: add streaming audio loading support

@@ -1,6 +1,6 @@
 use cgmath::Rotation3;
 
-use crate::{renderer::render_state::RenderState, resources};
+use crate::{collision::collider::ColliderMgr, renderer::render_state::RenderState, resources};
 
 use super::{
     aircraft::{AircraftMgr, AircraftPilot},
@@ -14,6 +14,7 @@ use super::{
 pub async fn create(
     aircraft_mgr: &mut AircraftMgr,
     transform_mgr: &mut TransformMgr,
+    collider_mgr: &mut ColliderMgr,
     aircraft_input_mgr: &mut AircraftInputMgr,
     building_mgr: &mut BuildingMgr,
     inventory_mgr: &mut InventoryMgr,
@@ -64,6 +65,7 @@ pub async fn create(
             cgmath::Quaternion::from_axis_angle(cgmath::Vector3::unit_z(), cgmath::Deg(0.0)),
             inventory_mgr,
             transform_mgr,
+            collider_mgr,
             aircraft_input_mgr,
             mesh_renderer_mgr,
             render_state,
@@ -90,6 +92,7 @@ pub async fn create(
             cgmath::Quaternion::from_axis_angle(cgmath::Vector3::unit_x(), cgmath::Deg(00.0)),
             inventory_mgr,
             transform_mgr,
+            collider_mgr,
             aircraft_input_mgr,
             mesh_renderer_mgr,
             render_state,
@@ -118,6 +121,7 @@ pub async fn create(
                 cgmath::Quaternion::from_axis_angle(cgmath::Vector3::unit_y(), cgmath::Deg(0.0)),
                 inventory_mgr,
                 transform_mgr,
+                collider_mgr,
                 aircraft_input_mgr,
                 mesh_renderer_mgr,
                 render_state,

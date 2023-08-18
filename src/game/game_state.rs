@@ -4,6 +4,7 @@ use winit::{event::Event, event_loop::EventLoop, window::Window};
 
 use crate::{
     audio::audio_manager::AudioMgr,
+    collision::collider::ColliderMgr,
     input::{cursor_manager::CursorMgr, keyboard_manager::KeyboardMgr},
     renderer::render_state::RenderState,
 };
@@ -30,6 +31,7 @@ pub struct GameState {
     axis_renderer_mgr: AxisRendererMgr,
 
     transform_mgr: TransformMgr,
+    collider_mgr: ColliderMgr,
 
     aircraft_mgr: AircraftMgr,
     aircraft_input_mgr: AircraftInputMgr,
@@ -60,6 +62,7 @@ impl GameState {
         let audio_test = AudioTest::new().await;
 
         let mut transform_mgr = TransformMgr::new();
+        let mut collider_mgr = ColliderMgr::new();
 
         let mut aircraft_mgr = AircraftMgr::new().unwrap();
         let mut aircraft_input_mgr = AircraftInputMgr::new();
@@ -69,6 +72,7 @@ impl GameState {
         sample_scene::create(
             &mut aircraft_mgr,
             &mut transform_mgr,
+            &mut collider_mgr,
             &mut aircraft_input_mgr,
             &mut building_mgr,
             &mut inventory_mgr,
@@ -85,6 +89,7 @@ impl GameState {
             axis_renderer_mgr,
 
             transform_mgr,
+            collider_mgr,
 
             aircraft_mgr,
             aircraft_input_mgr,
@@ -122,6 +127,7 @@ impl GameState {
         );
 
         self.transform_mgr.update();
+        self.collider_mgr.update(&self.transform_mgr);
 
         self.player_camera.update(
             &mut render_state.camera,
@@ -136,8 +142,11 @@ impl GameState {
     pub fn ui(&mut self, render_state: &mut RenderState) {
         self.egui_renderer.ui_begin_frame(&render_state.window);
 
-        self.aircraft_mgr
-            .ui(&self.transform_mgr, &self.egui_renderer.context);
+        self.aircraft_mgr.ui(
+            &self.transform_mgr,
+            &self.collider_mgr,
+            &self.egui_renderer.context,
+        );
         self.on_screen_diagnostics.ui(&self.egui_renderer.context);
 
         self.egui_renderer.ui_end_frame();

@@ -5,6 +5,13 @@ use super::{texture, vertex::Vertex};
 pub struct Model {
     pub meshes: Vec<Mesh>,
     pub materials: Vec<Material>,
+
+    pub min_x: f32,
+    pub min_y: f32,
+    pub min_z: f32,
+    pub max_x: f32,
+    pub max_y: f32,
+    pub max_z: f32,
 }
 
 pub struct Material {
@@ -60,6 +67,13 @@ pub struct Mesh {
     pub index_buffer: wgpu::Buffer,
     pub num_elements: u32,
     pub material: usize,
+
+    pub min_x: f32,
+    pub min_y: f32,
+    pub min_z: f32,
+    pub max_x: f32,
+    pub max_y: f32,
+    pub max_z: f32,
 }
 
 #[repr(C)]

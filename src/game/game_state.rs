@@ -35,6 +35,7 @@ pub struct GameState {
 
     aircraft_mgr: AircraftMgr,
     aircraft_input_mgr: AircraftInputMgr,
+
     building_mgr: BuildingMgr,
     inventory_mgr: InventoryMgr,
 
@@ -117,7 +118,7 @@ impl GameState {
 
     /// Handle component updates
     pub fn update(&mut self, render_state: &mut RenderState, dt: Duration) {
-        self.aircraft_input_mgr.update(&self.keyboard_mgr, dt);
+        self.aircraft_input_mgr.update(&self.keyboard_mgr);
         self.aircraft_mgr.update(
             &mut self.transform_mgr,
             &mut self.aircraft_input_mgr,

@@ -1,7 +1,7 @@
 use std::{f32::consts::FRAC_PI_2, time::Duration};
 
 use anyhow::Result;
-use cgmath::{Deg, EuclideanSpace, InnerSpace, Point3, Quaternion, Rad, Rotation3, Vector3};
+use cgmath::{EuclideanSpace, InnerSpace, Point3, Quaternion, Rad, Vector3};
 
 use crate::{collision::collider::ColliderMgr, renderer::render_state::RenderState, resources};
 
@@ -326,7 +326,7 @@ impl AircraftMgr {
         // Throttle
         let speed = (direction_leveled.magnitude2() / 100.0)
             .clamp(self.min_speed[index], self.max_speed[index]);
-        let speed = 0.0;
+        // let speed = 0.0;
         let translation = forward * speed * dt;
         transform_mgr.translate(transform_i, translation);
     }

@@ -52,7 +52,6 @@ impl ColliderMgr {
 
         let index = self.len() - 1;
 
-        println!("Created collider {:?}", index);
         Ok(index)
     }
 

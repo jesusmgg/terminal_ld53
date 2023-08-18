@@ -102,7 +102,7 @@ pub async fn create(
 
     let mut rng = oorandom::Rand32::new(1234);
 
-    for i in 0..10 {
+    for _ in 0..10 {
         aircraft_mgr
             .add(
                 AircraftPilot::Ai,

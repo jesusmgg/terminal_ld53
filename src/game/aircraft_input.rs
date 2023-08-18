@@ -1,13 +1,8 @@
-use std::time::Duration;
-
 use winit::event::VirtualKeyCode;
 
 use crate::input::keyboard_manager::KeyboardMgr;
 
-use super::{
-    aircraft::{AircraftMgr, AircraftPilot},
-    transform::TransformMgr,
-};
+use super::aircraft::AircraftPilot;
 
 const MAX_INSTANCE_COUNT: usize = 128;
 
@@ -81,20 +76,18 @@ impl AircraftInputMgr {
         self.pilot_type.len()
     }
 
-    pub fn update(&mut self, keyboard_mgr: &KeyboardMgr, dt: Duration) {
-        let dt = dt.as_secs_f32();
-
+    pub fn update(&mut self, keyboard_mgr: &KeyboardMgr) {
         for i in 0..self.pilot_type.len() {
             match self.pilot_type[i] {
                 AircraftPilot::Player => {
-                    self.process_keyboard_input(keyboard_mgr, i, dt);
+                    self.process_keyboard_input(keyboard_mgr, i);
                 }
                 AircraftPilot::Ai => {}
             }
         }
     }
 
-    fn process_keyboard_input(&mut self, keyboard_mgr: &KeyboardMgr, index: usize, dt: f32) {
+    fn process_keyboard_input(&mut self, keyboard_mgr: &KeyboardMgr, index: usize) {
         // TODO: use integers for input
         let amount = 1.0;
 

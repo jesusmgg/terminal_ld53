@@ -8,8 +8,6 @@ use crate::renderer::{
 
 use super::axis_vertex::{AxisVertex, AXIS_VERTICES};
 
-const MAX_INSTANCES: usize = 64;
-
 /// Renders coordinates axis.
 // TODO: support multiple instances. This may need a `position: Vec<Point3<f32>>`
 pub struct AxisRendererMgr {

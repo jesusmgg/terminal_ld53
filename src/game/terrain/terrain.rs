@@ -30,7 +30,7 @@ impl Terrain {
             .await;
 
         let collider_i = collider_mgr
-            .add_from_model(model_i, transform_i, &model_mgr)
+            .add_from_model(model_i, transform_i, false, true, &model_mgr)
             .unwrap();
 
         let mesh_renderer_i =

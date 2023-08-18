@@ -12,6 +12,11 @@ pub struct ColliderMgr {
     bounding_box_min: Vec<Point3<f32>>,
     bounding_box_max: Vec<Point3<f32>>,
 
+    /// Whether the collider checks for collision with other colliders or not.
+    is_collision_source: Vec<bool>,
+    /// Whether the collider is checked for collision by other colliders or not.
+    is_collision_target: Vec<bool>,
+
     /// Updated each frame
     pub colliding_indices: Vec<[isize; MAX_COLLISIONS]>,
 
@@ -25,6 +30,9 @@ impl ColliderMgr {
             bounding_box_min: Vec::with_capacity(MAX_INSTANCE_COUNT),
             bounding_box_max: Vec::with_capacity(MAX_INSTANCE_COUNT),
 
+            is_collision_source: Vec::with_capacity(MAX_INSTANCE_COUNT),
+            is_collision_target: Vec::with_capacity(MAX_INSTANCE_COUNT),
+
             colliding_indices: Vec::with_capacity(MAX_INSTANCE_COUNT),
 
             transform_i: Vec::with_capacity(MAX_INSTANCE_COUNT),
@@ -35,6 +43,8 @@ impl ColliderMgr {
         &mut self,
         model_i: usize,
         transform_i: usize,
+        is_collision_source: bool,
+        is_collision_target: bool,
         model_mgr: &ModelMgr,
     ) -> Result<usize> {
         let model = &model_mgr.model[model_i];
@@ -53,6 +63,9 @@ impl ColliderMgr {
         self.bounding_box_min.push(bounding_box_min);
         self.bounding_box_max.push(bounding_box_max);
 
+        self.is_collision_source.push(is_collision_source);
+        self.is_collision_target.push(is_collision_target);
+
         self.colliding_indices.push([-1; MAX_COLLISIONS]);
 
         self.transform_i.push(transform_i);
@@ -68,6 +81,9 @@ impl ColliderMgr {
             self.colliding_indices[index] = [-1; MAX_COLLISIONS];
         }
         for index in 0..self.len() {
+            if !self.is_collision_source[index] {
+                continue;
+            }
             self.colliding_indices[index] = self.check_collisions(index, &transform_mgr)
         }
     }
@@ -91,6 +107,9 @@ impl ColliderMgr {
         let mut collisions_found = 0;
         for other_index in 0..self.len() {
             if index == other_index {
+                continue;
+            }
+            if !self.is_collision_target[other_index] {
                 continue;
             }
 

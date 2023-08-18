@@ -139,7 +139,7 @@ impl AircraftMgr {
 
         self.collider_i.push(Some(
             collider_mgr
-                .add_from_model(model_i, transform_i, &model_mgr)
+                .add_from_model(model_i, transform_i, true, true, &model_mgr)
                 .unwrap(),
         ));
 

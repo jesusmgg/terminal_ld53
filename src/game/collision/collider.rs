@@ -1,7 +1,7 @@
 use anyhow::Result;
 use cgmath::Point3;
 
-use crate::{game::transform::TransformMgr, renderer::model::Model};
+use crate::game::{model::ModelMgr, transform::TransformMgr};
 
 const MAX_INSTANCE_COUNT: usize = 128;
 /// Maximum simultaneous collisions per instance.
@@ -31,7 +31,14 @@ impl ColliderMgr {
         }
     }
 
-    pub fn add_from_model(&mut self, model: &Model, transform_i: usize) -> Result<usize> {
+    pub fn add_from_model(
+        &mut self,
+        model_i: usize,
+        transform_i: usize,
+        model_mgr: &ModelMgr,
+    ) -> Result<usize> {
+        let model = &model_mgr.model[model_i];
+
         let bounding_box_min = Point3 {
             x: model.min_x,
             y: model.min_y,

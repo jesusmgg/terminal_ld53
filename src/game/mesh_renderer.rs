@@ -8,12 +8,14 @@ use crate::renderer::{
     vertex::Vertex,
 };
 
+use super::model::ModelMgr;
+
 const MAX_MESH_COUNT: usize = 128;
 const MAX_INSTANCE_COUNT: usize = 256;
 
 // TODO: Currently the component supports just a single instance per mesh.
 pub struct MeshInstancedRendererMgr {
-    model: Vec<model::Model>,
+    model_i: Vec<usize>,
     position: Vec<Vector3<f32>>,
     rotation: Vec<Quaternion<f32>>,
 
@@ -26,7 +28,7 @@ pub struct MeshInstancedRendererMgr {
 
 impl MeshInstancedRendererMgr {
     pub fn new(render_state: &RenderState) -> Self {
-        let model = Vec::with_capacity(MAX_MESH_COUNT);
+        let model_i = Vec::with_capacity(MAX_MESH_COUNT);
         let position = Vec::with_capacity(MAX_MESH_COUNT);
         let rotation = Vec::with_capacity(MAX_MESH_COUNT);
 
@@ -66,7 +68,7 @@ impl MeshInstancedRendererMgr {
         };
 
         Self {
-            model,
+            model_i,
             position,
             rotation,
 
@@ -82,15 +84,15 @@ impl MeshInstancedRendererMgr {
     pub fn add(
         &mut self,
         render_state: &RenderState,
-        model: model::Model,
+        model_i: usize,
         position: Vector3<f32>,
         rotation: Quaternion<f32>,
     ) -> usize {
-        self.model.push(model);
+        self.model_i.push(model_i);
         self.position.push(position);
         self.rotation.push(rotation);
 
-        let index = self.model.len() - 1;
+        let index = self.len() - 1;
 
         let mut mesh_instances = Vec::with_capacity(MAX_INSTANCE_COUNT);
         mesh_instances.push(model::InstanceRaw::new(position, rotation));
@@ -100,6 +102,10 @@ impl MeshInstancedRendererMgr {
         self.instance_buffer.push(instance_buffer);
 
         index
+    }
+
+    pub fn len(&self) -> usize {
+        self.model_i.len()
     }
 
     fn create_instance_buffer(&self, index: usize, render_state: &RenderState) -> wgpu::Buffer {
@@ -127,6 +133,7 @@ impl MeshInstancedRendererMgr {
 
     pub fn render(
         &mut self,
+        model_mgr: &ModelMgr,
         render_state: &RenderState,
         encoder: &mut wgpu::CommandEncoder,
         view: &wgpu::TextureView,
@@ -152,11 +159,14 @@ impl MeshInstancedRendererMgr {
         });
         render_pass.set_pipeline(&self.render_pipeline);
 
-        for i in 0..self.model.len() {
+        for i in 0..self.len() {
+            let model_i = self.model_i[i];
+            let model = &model_mgr.model[model_i];
+
             render_pass.set_vertex_buffer(1, self.instance_buffer[i].slice(..));
 
             render_pass.draw_model_instanced(
-                &self.model[i],
+                &model,
                 0..self.instance_raw[i].len() as u32,
                 &render_state.camera_bind_group,
                 &render_state.light_bind_group,

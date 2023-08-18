@@ -3,10 +3,10 @@ use cgmath::{EuclideanSpace, Point3, Quaternion};
 
 use crate::{
     game::{
-        inventory::InventoryMgr, mesh_renderer::MeshInstancedRendererMgr, transform::TransformMgr,
+        inventory::InventoryMgr, mesh_renderer::MeshInstancedRendererMgr, model::ModelMgr,
+        transform::TransformMgr,
     },
     renderer::render_state::RenderState,
-    resources,
 };
 
 const MAX_INSTANCE_COUNT: usize = 128;
@@ -51,6 +51,7 @@ impl BuildingMgr {
         inventory_mgr: &mut InventoryMgr,
 
         transform_mgr: &mut TransformMgr,
+        model_mgr: &mut ModelMgr,
         mesh_renderer_mgr: &mut MeshInstancedRendererMgr,
         render_state: &RenderState,
     ) -> Result<usize> {
@@ -64,17 +65,12 @@ impl BuildingMgr {
         self.transform_i
             .push(Some(transform_mgr.add(position, rotation)));
 
-        let factory_model = resources::load_model_obj(
-            "models/cube.obj",
-            &render_state.device,
-            &render_state.queue,
-            &mesh_renderer_mgr.texture_bind_group_layout,
-        )
-        .await
-        .unwrap();
+        let model_i = model_mgr
+            .get_with_name_or_add("models/cube.obj", &render_state, &mesh_renderer_mgr)
+            .await;
 
         let mesh_renderer_i =
-            Some(mesh_renderer_mgr.add(render_state, factory_model, position.to_vec(), rotation));
+            Some(mesh_renderer_mgr.add(render_state, model_i, position.to_vec(), rotation));
         self.mesh_renderer_i.push(mesh_renderer_i);
 
         let index = self.len() - 1;

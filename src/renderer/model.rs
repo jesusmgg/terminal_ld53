@@ -1,6 +1,5 @@
-use std::ops::Range;
-
 use super::{texture, vertex::Vertex};
+use std::ops::Range;
 
 pub struct Model {
     pub meshes: Vec<Mesh>,

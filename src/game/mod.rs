@@ -8,6 +8,8 @@ mod egui_manager;
 pub mod game_state;
 mod inventory;
 mod mesh_renderer;
+mod model;
+mod collision;
 mod sample_scene;
 pub mod terrain;
 pub mod transform;

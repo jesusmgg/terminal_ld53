@@ -1,13 +1,15 @@
 use cgmath::Rotation3;
 
-use crate::{collision::collider::ColliderMgr, renderer::render_state::RenderState};
+use crate::renderer::render_state::RenderState;
 
 use super::{
     aircraft::{AircraftMgr, AircraftPilot},
     aircraft_input::AircraftInputMgr,
     buildings::building::{BuildingMgr, BuildingType},
+    collision::collider::ColliderMgr,
     inventory::InventoryMgr,
     mesh_renderer::MeshInstancedRendererMgr,
+    model::ModelMgr,
     terrain::terrain::Terrain,
     transform::TransformMgr,
 };
@@ -19,6 +21,7 @@ pub async fn create(
     aircraft_input_mgr: &mut AircraftInputMgr,
     building_mgr: &mut BuildingMgr,
     inventory_mgr: &mut InventoryMgr,
+    model_mgr: &mut ModelMgr,
     render_state: &RenderState,
     mesh_renderer_mgr: &mut MeshInstancedRendererMgr,
 ) {
@@ -37,6 +40,7 @@ pub async fn create(
         rotation_terrain,
         transform_mgr,
         collider_mgr,
+        model_mgr,
         mesh_renderer_mgr,
         &render_state,
     )
@@ -60,6 +64,7 @@ pub async fn create(
             },
             cgmath::Quaternion::from_axis_angle(cgmath::Vector3::unit_z(), cgmath::Deg(0.0)),
             inventory_mgr,
+            model_mgr,
             transform_mgr,
             collider_mgr,
             aircraft_input_mgr,
@@ -87,6 +92,7 @@ pub async fn create(
             },
             cgmath::Quaternion::from_axis_angle(cgmath::Vector3::unit_x(), cgmath::Deg(00.0)),
             inventory_mgr,
+            model_mgr,
             transform_mgr,
             collider_mgr,
             aircraft_input_mgr,
@@ -116,6 +122,7 @@ pub async fn create(
                 },
                 cgmath::Quaternion::from_axis_angle(cgmath::Vector3::unit_y(), cgmath::Deg(0.0)),
                 inventory_mgr,
+                model_mgr,
                 transform_mgr,
                 collider_mgr,
                 aircraft_input_mgr,
@@ -140,6 +147,7 @@ pub async fn create(
             cgmath::Quaternion::from_axis_angle(cgmath::Vector3::unit_z(), cgmath::Deg(0.0)),
             inventory_mgr,
             transform_mgr,
+            model_mgr,
             mesh_renderer_mgr,
             render_state,
         )

@@ -3,11 +3,11 @@ use std::{f32::consts::FRAC_PI_2, time::Duration};
 use anyhow::Result;
 use cgmath::{EuclideanSpace, InnerSpace, Point3, Quaternion, Rad, Vector3};
 
-use crate::{collision::collider::ColliderMgr, renderer::render_state::RenderState, resources};
+use crate::renderer::render_state::RenderState;
 
 use super::{
-    aircraft_input::AircraftInputMgr, inventory::InventoryMgr,
-    mesh_renderer::MeshInstancedRendererMgr, transform::TransformMgr,
+    aircraft_input::AircraftInputMgr, collision::collider::ColliderMgr, inventory::InventoryMgr,
+    mesh_renderer::MeshInstancedRendererMgr, model::ModelMgr, transform::TransformMgr,
 };
 
 const MAX_INSTANCE_COUNT: usize = 128;
@@ -33,7 +33,7 @@ pub struct AircraftMgr {
     start_position: Vec<Point3<f32>>,
     start_rotation: Vec<Quaternion<f32>>,
 
-    // TODO: choose a safer way to store references
+    // TODO: research a safer way to store references
     pub inventory_i: Vec<Option<usize>>,
 
     pub transform_i: Vec<Option<usize>>,
@@ -92,6 +92,8 @@ impl AircraftMgr {
 
         inventory_mgr: &mut InventoryMgr,
 
+        model_mgr: &mut ModelMgr,
+
         transform_mgr: &mut TransformMgr,
         collider_mgr: &mut ColliderMgr,
         input_mgr: &mut AircraftInputMgr,
@@ -130,28 +132,21 @@ impl AircraftMgr {
         let position = transform_mgr.position[transform_i];
         let rotation = transform_mgr.rotation[transform_i];
 
-        // TODO: load model a single time and not for each aircraft instance.
-        let aircraft_1_model = resources::load_model_obj(
-            "models/Aircraft_1.obj",
-            &render_state.device,
-            &render_state.queue,
-            &mesh_renderer_mgr.texture_bind_group_layout,
-        )
-        .await
-        .unwrap();
+        let model_path = "models/Aircraft_1.obj";
+        let model_i = model_mgr
+            .get_with_name_or_add(model_path, &render_state, &mesh_renderer_mgr)
+            .await;
+
         self.collider_i.push(Some(
             collider_mgr
-                .add_from_model(&aircraft_1_model, transform_i)
+                .add_from_model(model_i, transform_i, &model_mgr)
                 .unwrap(),
         ));
 
         let mesh_renderer_i = match pilot_type {
-            AircraftPilot::Player | AircraftPilot::Ai => Some(mesh_renderer_mgr.add(
-                render_state,
-                aircraft_1_model,
-                position.to_vec(),
-                rotation,
-            )),
+            AircraftPilot::Player | AircraftPilot::Ai => {
+                Some(mesh_renderer_mgr.add(render_state, model_i, position.to_vec(), rotation))
+            }
         };
         self.mesh_renderer_i.push(mesh_renderer_i);
 

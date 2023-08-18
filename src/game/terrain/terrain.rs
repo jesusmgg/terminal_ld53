@@ -1,10 +1,9 @@
 use cgmath::{EuclideanSpace, Point3, Quaternion};
 
 use crate::{
-    collision::collider::ColliderMgr,
-    game::{mesh_renderer::MeshInstancedRendererMgr, transform::TransformMgr},
+    game::collision::collider::ColliderMgr,
+    game::{mesh_renderer::MeshInstancedRendererMgr, model::ModelMgr, transform::TransformMgr},
     renderer::render_state::RenderState,
-    resources,
 };
 
 pub struct Terrain {
@@ -20,26 +19,22 @@ impl Terrain {
         rotation: Quaternion<f32>,
         transform_mgr: &mut TransformMgr,
         collider_mgr: &mut ColliderMgr,
+        model_mgr: &mut ModelMgr,
         mesh_renderer_mgr: &mut MeshInstancedRendererMgr,
         render_state: &RenderState,
     ) -> Self {
         let transform_i = transform_mgr.add(position, rotation);
 
-        let terrain_model = resources::load_model_obj(
-            model_path,
-            &render_state.device,
-            &render_state.queue,
-            &mesh_renderer_mgr.texture_bind_group_layout,
-        )
-        .await
-        .unwrap();
+        let model_i = model_mgr
+            .add(model_path, &render_state, &mesh_renderer_mgr)
+            .await;
 
         let collider_i = collider_mgr
-            .add_from_model(&terrain_model, transform_i)
+            .add_from_model(model_i, transform_i, &model_mgr)
             .unwrap();
 
         let mesh_renderer_i =
-            mesh_renderer_mgr.add(render_state, terrain_model, position.to_vec(), rotation);
+            mesh_renderer_mgr.add(render_state, model_i, position.to_vec(), rotation);
 
         Self {
             transform_i,

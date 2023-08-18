@@ -4,7 +4,6 @@ use winit::{event::Event, event_loop::EventLoop, window::Window};
 
 use crate::{
     audio::audio_manager::AudioMgr,
-    collision::collider::ColliderMgr,
     input::{cursor_manager::CursorMgr, keyboard_manager::KeyboardMgr},
     renderer::render_state::RenderState,
 };
@@ -15,10 +14,12 @@ use super::{
     audio_test::AudioTest,
     buildings::building::BuildingMgr,
     camera::player_camera::PlayerCameraController,
+    collision::collider::ColliderMgr,
     diagnostics::{axis_renderer::AxisRendererMgr, on_screen_diagnostics::OnScreenDiagnostics},
     egui_manager::egui_renderer::EguiRenderer,
     inventory::InventoryMgr,
     mesh_renderer::MeshInstancedRendererMgr,
+    model::ModelMgr,
     sample_scene,
     transform::TransformMgr,
 };
@@ -38,6 +39,8 @@ pub struct GameState {
 
     building_mgr: BuildingMgr,
     inventory_mgr: InventoryMgr,
+
+    model_mgr: ModelMgr,
 
     egui_renderer: EguiRenderer,
     on_screen_diagnostics: OnScreenDiagnostics,
@@ -70,6 +73,8 @@ impl GameState {
         let mut building_mgr = BuildingMgr::new();
         let mut inventory_mgr = InventoryMgr::new();
 
+        let mut model_mgr = ModelMgr::new();
+
         sample_scene::create(
             &mut aircraft_mgr,
             &mut transform_mgr,
@@ -77,6 +82,7 @@ impl GameState {
             &mut aircraft_input_mgr,
             &mut building_mgr,
             &mut inventory_mgr,
+            &mut model_mgr,
             render_state,
             &mut mesh_instanced_renderer_mgr,
         )
@@ -96,6 +102,8 @@ impl GameState {
             aircraft_input_mgr,
             building_mgr,
             inventory_mgr,
+
+            model_mgr,
 
             egui_renderer,
             on_screen_diagnostics,
@@ -161,7 +169,7 @@ impl GameState {
         view: &wgpu::TextureView,
     ) {
         self.mesh_instanced_renderer_mgr
-            .render(render_state, encoder, view)
+            .render(&self.model_mgr, render_state, encoder, view)
             .unwrap();
 
         self.egui_renderer

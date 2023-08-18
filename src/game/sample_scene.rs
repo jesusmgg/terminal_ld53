@@ -1,6 +1,6 @@
 use cgmath::Rotation3;
 
-use crate::{collision::collider::ColliderMgr, renderer::render_state::RenderState, resources};
+use crate::{collision::collider::ColliderMgr, renderer::render_state::RenderState};
 
 use super::{
     aircraft::{AircraftMgr, AircraftPilot},
@@ -8,6 +8,7 @@ use super::{
     buildings::building::{BuildingMgr, BuildingType},
     inventory::InventoryMgr,
     mesh_renderer::MeshInstancedRendererMgr,
+    terrain::terrain::Terrain,
     transform::TransformMgr,
 };
 
@@ -22,16 +23,7 @@ pub async fn create(
     mesh_renderer_mgr: &mut MeshInstancedRendererMgr,
 ) {
     // Load terrain
-    let terrain_model = resources::load_model_obj(
-        "models/Terrain_1.obj",
-        &render_state.device,
-        &render_state.queue,
-        &mesh_renderer_mgr.texture_bind_group_layout,
-    )
-    .await
-    .unwrap();
-
-    let position_terrain = cgmath::Vector3 {
+    let position_terrain = cgmath::Point3 {
         x: 0.0,
         y: 0.0,
         z: 0.0,
@@ -39,12 +31,16 @@ pub async fn create(
     let rotation_terrain =
         cgmath::Quaternion::from_axis_angle(cgmath::Vector3::unit_z(), cgmath::Deg(0.0));
 
-    mesh_renderer_mgr.add(
-        render_state,
-        terrain_model,
+    let _terrain = Terrain::new(
+        "models/Terrain_1.obj",
         position_terrain,
         rotation_terrain,
-    );
+        transform_mgr,
+        collider_mgr,
+        mesh_renderer_mgr,
+        &render_state,
+    )
+    .await;
 
     // Player aircraft
     aircraft_mgr

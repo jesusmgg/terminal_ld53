@@ -9,4 +9,5 @@ pub mod game_state;
 mod inventory;
 mod mesh_renderer;
 mod sample_scene;
+pub mod terrain;
 pub mod transform;

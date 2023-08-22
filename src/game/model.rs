@@ -39,8 +39,7 @@ impl ModelMgr {
 
         self.model.push(model);
 
-        let index = self.len() - 1;
-        index
+        self.len() - 1
     }
 
     pub fn len(&self) -> usize {
@@ -63,11 +62,9 @@ impl ModelMgr {
         render_state: &RenderState,
         mesh_renderer_mgr: &MeshInstancedRendererMgr,
     ) -> usize {
-        let index = match self.get_with_name(&model_path) {
+        match self.get_with_name(model_path) {
             Some(index) => index,
-            None => self.add(&model_path, render_state, mesh_renderer_mgr).await,
-        };
-
-        index
+            None => self.add(model_path, render_state, mesh_renderer_mgr).await,
+        }
     }
 }

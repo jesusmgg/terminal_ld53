@@ -131,7 +131,7 @@ impl GameState {
             &mut self.transform_mgr,
             &mut self.aircraft_input_mgr,
             &mut self.mesh_instanced_renderer_mgr,
-            &render_state,
+            render_state,
             dt,
         );
 

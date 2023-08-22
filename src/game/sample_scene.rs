@@ -42,7 +42,7 @@ pub async fn create(
         collider_mgr,
         model_mgr,
         mesh_renderer_mgr,
-        &render_state,
+        render_state,
     )
     .await;
 

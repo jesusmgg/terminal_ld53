@@ -66,7 +66,7 @@ impl BuildingMgr {
             .push(Some(transform_mgr.add(position, rotation)));
 
         let model_i = model_mgr
-            .get_with_name_or_add("models/cube.obj", &render_state, &mesh_renderer_mgr)
+            .get_with_name_or_add("models/cube.obj", render_state, mesh_renderer_mgr)
             .await;
 
         let mesh_renderer_i =

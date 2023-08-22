@@ -91,7 +91,7 @@ impl ColliderMgr {
             if !self.is_collision_source[index] {
                 continue;
             }
-            self.colliding_indices[index] = self.check_collisions(index, &transform_mgr)
+            self.colliding_indices[index] = self.check_collisions(index, transform_mgr)
         }
     }
 

@@ -166,7 +166,7 @@ impl MeshInstancedRendererMgr {
             render_pass.set_vertex_buffer(1, self.instance_buffer[i].slice(..));
 
             render_pass.draw_model_instanced(
-                &model,
+                model,
                 0..self.instance_raw[i].len() as u32,
                 &render_state.camera_bind_group,
                 &render_state.light_bind_group,

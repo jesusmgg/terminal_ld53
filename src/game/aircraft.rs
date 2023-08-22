@@ -138,7 +138,7 @@ impl AircraftMgr {
 
         let model_path = "models/Aircraft_1.obj";
         let model_i = model_mgr
-            .get_with_name_or_add(model_path, &render_state, &mesh_renderer_mgr)
+            .get_with_name_or_add(model_path, render_state, mesh_renderer_mgr)
             .await;
 
         self.collider_i.push(Some(
@@ -149,7 +149,7 @@ impl AircraftMgr {
                     ColliderType::Box,
                     true,
                     true,
-                    &model_mgr,
+                    model_mgr,
                 )
                 .unwrap(),
         ));

@@ -29,7 +29,7 @@ impl Terrain {
         let transform_i = transform_mgr.add(position, rotation);
 
         let model_i = model_mgr
-            .add(model_path, &render_state, &mesh_renderer_mgr)
+            .add(model_path, render_state, mesh_renderer_mgr)
             .await;
 
         let collider_i = collider_mgr
@@ -39,7 +39,7 @@ impl Terrain {
                 ColliderType::Mesh,
                 false,
                 true,
-                &model_mgr,
+                model_mgr,
             )
             .unwrap();
 

@@ -71,6 +71,7 @@ pub async fn load_model_obj(
         let path_normal = std::path::Path::new(&path_root).join(&m.normal_texture);
         let diffuse_texture =
             load_texture(path_diffuse.to_str().unwrap(), false, device, queue).await?;
+        // TODO: add default normal map texture for when one is not defined in the OBJ file.
         let normal_texture =
             load_texture(path_normal.to_str().unwrap(), true, device, queue).await?;
 

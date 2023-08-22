@@ -12,6 +12,8 @@ pub struct ColliderMgr {
     bounding_box_min: Vec<Point3<f32>>,
     bounding_box_max: Vec<Point3<f32>>,
 
+    collider_type: Vec<ColliderType>,
+
     /// Whether the collider checks for collision with other colliders or not.
     is_collision_source: Vec<bool>,
     /// Whether the collider is checked for collision by other colliders or not.
@@ -30,6 +32,8 @@ impl ColliderMgr {
             bounding_box_min: Vec::with_capacity(MAX_INSTANCE_COUNT),
             bounding_box_max: Vec::with_capacity(MAX_INSTANCE_COUNT),
 
+            collider_type: Vec::with_capacity(MAX_INSTANCE_COUNT),
+
             is_collision_source: Vec::with_capacity(MAX_INSTANCE_COUNT),
             is_collision_target: Vec::with_capacity(MAX_INSTANCE_COUNT),
 
@@ -43,6 +47,7 @@ impl ColliderMgr {
         &mut self,
         model_i: usize,
         transform_i: usize,
+        collider_type: ColliderType,
         is_collision_source: bool,
         is_collision_target: bool,
         model_mgr: &ModelMgr,
@@ -62,6 +67,8 @@ impl ColliderMgr {
 
         self.bounding_box_min.push(bounding_box_min);
         self.bounding_box_max.push(bounding_box_max);
+
+        self.collider_type.push(collider_type);
 
         self.is_collision_source.push(is_collision_source);
         self.is_collision_target.push(is_collision_target);
@@ -161,4 +168,9 @@ impl ColliderMgr {
     pub fn len(&self) -> usize {
         self.bounding_box_min.len()
     }
+}
+
+pub enum ColliderType {
+    Box,
+    Mesh,
 }

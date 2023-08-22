@@ -2,7 +2,10 @@ use cgmath::{EuclideanSpace, Point3, Quaternion};
 
 use crate::{
     game::collision::collider::ColliderMgr,
-    game::{mesh_renderer::MeshInstancedRendererMgr, model::ModelMgr, transform::TransformMgr},
+    game::{
+        collision::collider::ColliderType, mesh_renderer::MeshInstancedRendererMgr,
+        model::ModelMgr, transform::TransformMgr,
+    },
     renderer::render_state::RenderState,
 };
 
@@ -30,7 +33,14 @@ impl Terrain {
             .await;
 
         let collider_i = collider_mgr
-            .add_from_model(model_i, transform_i, false, true, &model_mgr)
+            .add_from_model(
+                model_i,
+                transform_i,
+                ColliderType::Mesh,
+                false,
+                true,
+                &model_mgr,
+            )
             .unwrap();
 
         let mesh_renderer_i =

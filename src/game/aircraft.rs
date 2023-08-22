@@ -6,8 +6,12 @@ use cgmath::{EuclideanSpace, InnerSpace, Point3, Quaternion, Rad, Vector3};
 use crate::renderer::render_state::RenderState;
 
 use super::{
-    aircraft_input::AircraftInputMgr, collision::collider::ColliderMgr, inventory::InventoryMgr,
-    mesh_renderer::MeshInstancedRendererMgr, model::ModelMgr, transform::TransformMgr,
+    aircraft_input::AircraftInputMgr,
+    collision::collider::{ColliderMgr, ColliderType},
+    inventory::InventoryMgr,
+    mesh_renderer::MeshInstancedRendererMgr,
+    model::ModelMgr,
+    transform::TransformMgr,
 };
 
 const MAX_INSTANCE_COUNT: usize = 128;
@@ -139,7 +143,14 @@ impl AircraftMgr {
 
         self.collider_i.push(Some(
             collider_mgr
-                .add_from_model(model_i, transform_i, true, true, &model_mgr)
+                .add_from_model(
+                    model_i,
+                    transform_i,
+                    ColliderType::Box,
+                    true,
+                    true,
+                    &model_mgr,
+                )
                 .unwrap(),
         ));
 

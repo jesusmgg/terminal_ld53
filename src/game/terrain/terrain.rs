@@ -36,7 +36,7 @@ impl Terrain {
             .add_from_model(
                 model_i,
                 transform_i,
-                ColliderType::Mesh,
+                ColliderType::Vertex,
                 false,
                 true,
                 model_mgr,

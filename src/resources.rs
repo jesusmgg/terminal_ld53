@@ -232,6 +232,8 @@ pub async fn load_model_obj(
                 num_elements: m.mesh.indices.len() as u32,
                 material: m.mesh.material_id.unwrap_or(0),
 
+                vertices,
+
                 min_x,
                 min_y,
                 min_z,

@@ -67,6 +67,8 @@ pub struct Mesh {
     pub num_elements: u32,
     pub material: usize,
 
+    pub vertices: Vec<ModelVertex>,
+
     pub min_x: f32,
     pub min_y: f32,
     pub min_z: f32,

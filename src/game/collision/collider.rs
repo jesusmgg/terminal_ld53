@@ -24,6 +24,7 @@ pub struct ColliderMgr {
 
     // References
     transform_i: Vec<usize>,
+    model_i: Vec<Option<usize>>,
 }
 
 impl ColliderMgr {
@@ -40,6 +41,7 @@ impl ColliderMgr {
             colliding_indices: Vec::with_capacity(MAX_INSTANCE_COUNT),
 
             transform_i: Vec::with_capacity(MAX_INSTANCE_COUNT),
+            model_i: Vec::with_capacity(MAX_INSTANCE_COUNT),
         }
     }
 
@@ -76,13 +78,14 @@ impl ColliderMgr {
         self.colliding_indices.push([-1; MAX_COLLISIONS]);
 
         self.transform_i.push(transform_i);
+        self.model_i.push(Some(model_i));
 
         let index = self.len() - 1;
 
         Ok(index)
     }
 
-    pub fn update(&mut self, transform_mgr: &TransformMgr) {
+    pub fn update(&mut self, transform_mgr: &TransformMgr, model_mgr: &ModelMgr) {
         // OPTIMIZE: parallelize collision checks
         for index in 0..self.len() {
             self.colliding_indices[index] = [-1; MAX_COLLISIONS];
@@ -91,7 +94,7 @@ impl ColliderMgr {
             if !self.is_collision_source[index] {
                 continue;
             }
-            self.colliding_indices[index] = self.check_collisions(index, transform_mgr)
+            self.colliding_indices[index] = self.check_collisions(index, transform_mgr, model_mgr)
         }
     }
 
@@ -101,6 +104,7 @@ impl ColliderMgr {
         &self,
         index: usize,
         transform_mgr: &TransformMgr,
+        model_mgr: &ModelMgr,
     ) -> [isize; MAX_COLLISIONS] {
         let transform_i = self.transform_i[index];
         let position = transform_mgr.position[transform_i];
@@ -125,7 +129,7 @@ impl ColliderMgr {
             let other_min_pos = self.get_translated_min_pos(other_index, other_position);
             let other_max_pos = self.get_translated_max_pos(other_index, other_position);
 
-            // Collision check
+            // Box collision check
             if min_pos.x <= other_max_pos.x
                 && max_pos.x >= other_min_pos.x
                 && min_pos.y <= other_max_pos.y
@@ -133,8 +137,22 @@ impl ColliderMgr {
                 && min_pos.z <= other_max_pos.z
                 && max_pos.z >= other_min_pos.z
             {
-                collisions[collisions_found] = other_index as isize;
-                collisions_found += 1;
+                let collider_type = &self.collider_type[index];
+                let other_collider_type = &self.collider_type[other_index];
+                let is_colliding = match (collider_type, other_collider_type) {
+                    (ColliderType::Box, ColliderType::Box) => true,
+                    (ColliderType::Box, ColliderType::Vertex) => {
+                        self.check_collision_box_mesh(index, other_index, transform_mgr, model_mgr)
+                    }
+                    (ColliderType::Vertex, ColliderType::Box) => {
+                        self.check_collision_box_mesh(other_index, index, transform_mgr, model_mgr)
+                    }
+                    (ColliderType::Vertex, ColliderType::Vertex) => todo!(),
+                };
+                if is_colliding {
+                    collisions[collisions_found] = other_index as isize;
+                    collisions_found += 1;
+                }
             }
 
             if collisions_found >= MAX_COLLISIONS {
@@ -145,22 +163,71 @@ impl ColliderMgr {
         collisions
     }
 
+    /// index: box
+    /// other_index: mesh
+    fn check_collision_box_mesh(
+        &self,
+        index: usize,
+        other_index: usize,
+        transform_mgr: &TransformMgr,
+        model_mgr: &ModelMgr,
+    ) -> bool {
+        let transform_i = self.transform_i[index];
+        let position = transform_mgr.position[transform_i];
+
+        // OPTIMIZE: these are already calculated in calling function.
+        let min_pos = self.get_translated_min_pos(index, position);
+        let max_pos = self.get_translated_max_pos(index, position);
+
+        let other_model_i = self.model_i[other_index].unwrap();
+        let other_model = &model_mgr.model[other_model_i];
+
+        let mut checks = 0;
+        for mesh in (other_model.meshes).iter() {
+            for vertex in (mesh.vertices).iter() {
+                checks += 1;
+                let x = vertex.position[0];
+                let y = vertex.position[1];
+                let z = vertex.position[2];
+                if x <= max_pos.x
+                    && x >= min_pos.x
+                    && y <= max_pos.y
+                    && y >= min_pos.y
+                    && z <= max_pos.z
+                    && z >= min_pos.z
+                {
+                    return true;
+                }
+            }
+        }
+
+        false
+    }
+
+    // fn check_collision_mesh_mesh(&self, index: usize, other_index: usize) -> bool {
+    //     false
+    // }
+
     /// Gets a translated minimum position, the [reference_position] argument is usually the transform's position.
     fn get_translated_min_pos(&self, index: usize, reference_position: Point3<f32>) -> Point3<f32> {
         let bounding_box_min = self.bounding_box_min[index];
-        let x = reference_position.x + bounding_box_min.x;
-        let y = reference_position.y + bounding_box_min.y;
-        let z = reference_position.z + bounding_box_min.z;
-
-        Point3 { x, y, z }
+        self.get_translated_position(reference_position, bounding_box_min)
     }
 
     /// Gets a translated maximum position, the [reference_position] argument is usually the transform's position.
     fn get_translated_max_pos(&self, index: usize, reference_position: Point3<f32>) -> Point3<f32> {
         let bounding_box_max = self.bounding_box_max[index];
-        let x = reference_position.x + bounding_box_max.x;
-        let y = reference_position.y + bounding_box_max.y;
-        let z = reference_position.z + bounding_box_max.z;
+        self.get_translated_position(reference_position, bounding_box_max)
+    }
+
+    fn get_translated_position(
+        &self,
+        reference_position: Point3<f32>,
+        offset: Point3<f32>,
+    ) -> Point3<f32> {
+        let x = reference_position.x + offset.x;
+        let y = reference_position.y + offset.y;
+        let z = reference_position.z + offset.z;
 
         Point3 { x, y, z }
     }
@@ -171,6 +238,8 @@ impl ColliderMgr {
 }
 
 pub enum ColliderType {
+    /// Bounding box collision check.
     Box,
-    Mesh,
+    /// Per-vertex collision check.
+    Vertex,
 }

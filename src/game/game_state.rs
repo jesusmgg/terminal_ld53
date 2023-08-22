@@ -136,7 +136,8 @@ impl GameState {
         );
 
         self.transform_mgr.update();
-        self.collider_mgr.update(&self.transform_mgr);
+        self.collider_mgr
+            .update(&self.transform_mgr, &self.model_mgr);
 
         self.player_camera.update(
             &mut render_state.camera,

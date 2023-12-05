@@ -1,4 +1,5 @@
 use egui;
+use egui_winit::pixels_per_point;
 use winit::{event::Event, event_loop::EventLoop, window::Window};
 
 use crate::renderer::{render_state::RenderState, texture};
@@ -12,8 +13,6 @@ pub struct EguiRenderer {
 
 impl EguiRenderer {
     pub fn new<T>(event_loop: &EventLoop<T>, render_state: &RenderState) -> Self {
-        let platform = egui_winit::State::new(event_loop);
-
         let renderer = egui_wgpu::Renderer::new(
             &render_state.device,
             render_state.config.format,
@@ -22,6 +21,13 @@ impl EguiRenderer {
         );
 
         let context = egui::Context::default();
+
+        let platform = egui_winit::State::new(
+            context.viewport_id(),
+            event_loop,
+            Some(pixels_per_point(&context, &render_state.window)),
+            Some(1024),
+        );
 
         Self {
             context,
@@ -37,7 +43,7 @@ impl EguiRenderer {
                 ref event,
                 window_id,
             } if window_id == window.id() => {
-                let _ = self.platform.on_event(&self.context, event);
+                let _ = self.platform.on_window_event(&self.context, event);
             }
             _ => (),
         }
@@ -67,11 +73,15 @@ impl EguiRenderer {
                 full_output.platform_output.clone(),
             );
 
-            let paint_jobs = self.context.tessellate(full_output.shapes.clone());
+            let pixels_per_point = pixels_per_point(&self.context, &render_state.window);
+
+            let paint_jobs = self
+                .context
+                .tessellate(full_output.shapes.clone(), pixels_per_point);
 
             let screen_descriptor = egui_wgpu::renderer::ScreenDescriptor {
                 size_in_pixels: [render_state.config.width, render_state.config.height],
-                pixels_per_point: self.platform.pixels_per_point(),
+                pixels_per_point,
             };
 
             for (id, image_delta) in &full_output.textures_delta.set {
@@ -98,7 +108,7 @@ impl EguiRenderer {
                     resolve_target: None,
                     ops: wgpu::Operations {
                         load: wgpu::LoadOp::Load,
-                        store: true,
+                        store: wgpu::StoreOp::Store,
                     },
                 })],
                 depth_stencil_attachment: Some(wgpu::RenderPassDepthStencilAttachment {
@@ -106,10 +116,12 @@ impl EguiRenderer {
 
                     depth_ops: Some(wgpu::Operations {
                         load: wgpu::LoadOp::Clear(1.0),
-                        store: true,
+                        store: wgpu::StoreOp::Store,
                     }),
                     stencil_ops: None,
                 }),
+                timestamp_writes: None,
+                occlusion_query_set: None,
             });
 
             self.renderer

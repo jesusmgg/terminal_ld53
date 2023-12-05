@@ -3,8 +3,9 @@ use winit::{
     window::Window,
 };
 
-const KEYCODE_COUNT: usize = 256;
+const KEYCODE_COUNT: usize = 512;
 
+// TODO: Update to support new key event enum (NamedKey, Character)
 pub struct KeyboardMgr {
     pub key_pressed: [bool; KEYCODE_COUNT],
     pub key_down: [bool; KEYCODE_COUNT],

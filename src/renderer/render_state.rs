@@ -3,6 +3,7 @@ use std::time::Duration;
 use cgmath::Rotation3;
 use cgmath::Zero;
 use wgpu::util::DeviceExt;
+use wgpu::InstanceFlags;
 use winit::window::Window;
 
 use crate::game::game_state::GameState;
@@ -47,6 +48,8 @@ impl RenderState {
         let instance = wgpu::Instance::new(wgpu::InstanceDescriptor {
             backends: wgpu::Backends::all(),
             dx12_shader_compiler: Default::default(),
+            flags: InstanceFlags::empty(),
+            gles_minor_version: wgpu::Gles3MinorVersion::Automatic,
         });
 
         // The surface needs to live as long as the window that created it.
@@ -84,7 +87,7 @@ impl RenderState {
             .formats
             .iter()
             .copied()
-            .find(|f| f.describe().srgb)
+            .find(|f| f.is_srgb())
             .unwrap_or(surface_caps.formats[0]);
         let config = wgpu::SurfaceConfiguration {
             usage: wgpu::TextureUsages::RENDER_ATTACHMENT,

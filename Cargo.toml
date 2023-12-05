@@ -18,16 +18,16 @@ cgmath = "0.18"
 oorandom = {version = "11.1.3", default-features = false}
 
 # Rendering
-winit = "0.28.3"
-wgpu = {version = "0.15", default-features = false, features = ["glsl", "wgsl"]}
+winit = "0.28"
+wgpu = {version = "0.18", default-features = false, features = ["glsl", "wgsl"]}
 tobj = {version = "3.2.3", features = ["async"]}
 gltf = {version = "1.1.0"}
 image = {version = "0.24", default-features = false, features = ["png", "jpeg"]}
 
 # UI
-egui = "0.21.0"
-egui-winit = "0.21.1"
-egui-wgpu = {version = "0.21.0", features= ["winit"]}
+egui = "0.24.1"
+egui-winit = "0.24.1"
+egui-wgpu = {version = "0.24.1", features= ["winit"]}
 
 # Audio
 kira = {version = "0.7.3", default-features = false, features = ["cpal", "ogg"]}

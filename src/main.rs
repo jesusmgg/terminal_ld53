@@ -11,7 +11,7 @@ use renderer::render_state::RenderState;
 use winit::{
     event::{ElementState, Event, KeyboardInput, VirtualKeyCode, WindowEvent},
     event_loop::{ControlFlow, EventLoop},
-    window::WindowBuilder,
+    window::{Fullscreen, WindowBuilder},
 };
 
 const WINDOW_TITLE: &str = "terminal_ld53";
@@ -32,7 +32,7 @@ async fn game_loop<'a>() {
             width: WINDOW_WIDTH,
             height: WINDOW_HEIGHT,
         })
-        .with_maximized(true)
+        .with_fullscreen(Some(Fullscreen::Borderless(None)))
         .build(&event_loop)
         .unwrap();
 

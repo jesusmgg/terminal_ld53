@@ -1,0 +1,5 @@
+# Ignored by Helix
+
+assets/
+.idea/
+.vscode/

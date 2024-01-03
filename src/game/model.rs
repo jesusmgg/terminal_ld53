@@ -19,15 +19,19 @@ impl ModelMgr {
         Self { name, model }
     }
 
-    pub async fn add(
+    pub fn add(&mut self, model: Model, name: &str) -> usize {
+        self.name.push(String::from(name));
+        self.model.push(model);
+
+        self.len() - 1
+    }
+
+    pub async fn add_from_file(
         &mut self,
         model_path: &str,
         render_state: &RenderState,
         mesh_renderer_mgr: &MeshInstancedRendererMgr,
     ) -> usize {
-        let name = String::from(model_path);
-        self.name.push(name);
-
         let model = resources::load_model_obj(
             model_path,
             &render_state.device,
@@ -37,9 +41,7 @@ impl ModelMgr {
         .await
         .unwrap();
 
-        self.model.push(model);
-
-        self.len() - 1
+        self.add(model, model_path)
     }
 
     pub fn len(&self) -> usize {
@@ -64,7 +66,10 @@ impl ModelMgr {
     ) -> usize {
         match self.get_with_name(model_path) {
             Some(index) => index,
-            None => self.add(model_path, render_state, mesh_renderer_mgr).await,
+            None => {
+                self.add_from_file(model_path, render_state, mesh_renderer_mgr)
+                    .await
+            }
         }
     }
 }

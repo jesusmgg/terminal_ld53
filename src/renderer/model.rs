@@ -1,4 +1,8 @@
-use super::{texture, vertex::Vertex};
+use wgpu::BindGroupLayout;
+
+use crate::resources;
+
+use super::{render_state::RenderState, texture, vertex::Vertex};
 use std::ops::Range;
 
 pub struct Model {
@@ -11,6 +15,40 @@ pub struct Model {
     pub max_x: f32,
     pub max_y: f32,
     pub max_z: f32,
+}
+
+impl Model {
+    pub async fn new_from_single_mesh(
+        mesh: Mesh,
+        render_state: &RenderState,
+        texture_bind_group_layout: &BindGroupLayout,
+    ) -> Self {
+        let min_x = mesh.min_x;
+        let min_y = mesh.min_y;
+        let min_z = mesh.min_z;
+        let max_x = mesh.max_x;
+        let max_y = mesh.max_y;
+        let max_z = mesh.max_z;
+
+        let material = Material::load_default_material(
+            &render_state.device,
+            &render_state.queue,
+            texture_bind_group_layout,
+        )
+        .await
+        .unwrap();
+
+        Self {
+            meshes: vec![mesh],
+            materials: vec![material],
+            min_x,
+            min_y,
+            min_z,
+            max_x,
+            max_y,
+            max_z,
+        }
+    }
 }
 
 pub struct Material {
@@ -58,6 +96,27 @@ impl Material {
             bind_group,
         }
     }
+
+    pub async fn load_default_material(
+        device: &wgpu::Device,
+        queue: &wgpu::Queue,
+        layout: &wgpu::BindGroupLayout,
+    ) -> anyhow::Result<Material> {
+        let file_path = std::path::Path::new("textures/yellow.png");
+
+        let diffuse_texture =
+            resources::load_texture(file_path.to_str().unwrap(), false, device, queue).await?;
+        let normal_texture =
+            resources::load_texture(file_path.to_str().unwrap(), true, device, queue).await?;
+
+        Ok(Material::new(
+            device,
+            "Default texture",
+            diffuse_texture,
+            normal_texture,
+            layout,
+        ))
+    }
 }
 
 pub struct Mesh {
@@ -68,6 +127,8 @@ pub struct Mesh {
     pub material: usize,
 
     pub vertices: Vec<ModelVertex>,
+
+    pub is_wireframe: bool,
 
     pub min_x: f32,
     pub min_y: f32,
@@ -132,14 +193,14 @@ pub trait DrawModel<'a> {
     fn draw_mesh(
         &mut self,
         mesh: &'a Mesh,
-        material: &'a Material,
+        material: Option<&'a Material>,
         camera_bind_group: &'a wgpu::BindGroup,
         light_bind_group: &'a wgpu::BindGroup,
     );
     fn draw_mesh_instanced(
         &mut self,
         mesh: &'a Mesh,
-        material: &'a Material,
+        material: Option<&'a Material>,
         instances: Range<u32>,
         camera_bind_group: &'a wgpu::BindGroup,
         light_bind_group: &'a wgpu::BindGroup,
@@ -161,7 +222,7 @@ pub trait DrawModel<'a> {
     fn draw_model_instanced_with_material(
         &mut self,
         model: &'a Model,
-        material: &'a Material,
+        material: Option<&'a Material>,
         instances: Range<u32>,
         camera_bind_group: &'a wgpu::BindGroup,
         light_bind_group: &'a wgpu::BindGroup,
@@ -175,7 +236,7 @@ where
     fn draw_mesh(
         &mut self,
         mesh: &'b Mesh,
-        material: &'b Material,
+        material: Option<&'b Material>,
         camera_bind_group: &'b wgpu::BindGroup,
         light_bind_group: &'a wgpu::BindGroup,
     ) {
@@ -185,14 +246,14 @@ where
     fn draw_mesh_instanced(
         &mut self,
         mesh: &'b Mesh,
-        material: &'b Material,
+        material: Option<&'b Material>,
         instances: Range<u32>,
         camera_bind_group: &'b wgpu::BindGroup,
         light_bind_group: &'a wgpu::BindGroup,
     ) {
         self.set_vertex_buffer(0, mesh.vertex_buffer.slice(..));
         self.set_index_buffer(mesh.index_buffer.slice(..), wgpu::IndexFormat::Uint32);
-        self.set_bind_group(0, &material.bind_group, &[]);
+        self.set_bind_group(0, &material.unwrap().bind_group, &[]);
         self.set_bind_group(1, camera_bind_group, &[]);
         self.set_bind_group(2, light_bind_group, &[]);
         self.draw_indexed(0..mesh.num_elements, 0, instances);
@@ -215,7 +276,11 @@ where
         light_bind_group: &'a wgpu::BindGroup,
     ) {
         for mesh in &model.meshes {
-            let material = &model.materials[mesh.material];
+            let material = if model.materials.len() > 0 {
+                Some(&model.materials[mesh.material])
+            } else {
+                None
+            };
             self.draw_mesh_instanced(
                 mesh,
                 material,
@@ -229,7 +294,7 @@ where
     fn draw_model_instanced_with_material(
         &mut self,
         model: &'a Model,
-        material: &'b Material,
+        material: Option<&'b Material>,
         instances: Range<u32>,
         camera_bind_group: &'a wgpu::BindGroup,
         light_bind_group: &'a wgpu::BindGroup,

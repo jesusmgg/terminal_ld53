@@ -149,8 +149,13 @@ impl AircraftMgr {
                     ColliderType::Box,
                     true,
                     true,
+                    true,
+                    render_state,
+                    transform_mgr,
                     model_mgr,
+                    mesh_renderer_mgr,
                 )
+                .await
                 .unwrap(),
         ));
 

@@ -1,7 +1,14 @@
 use anyhow::Result;
-use cgmath::Point3;
+use cgmath::{EuclideanSpace, Point3};
+use wgpu::util::DeviceExt;
 
-use crate::game::{model::ModelMgr, transform::TransformMgr};
+use crate::{
+    game::{mesh_renderer::MeshInstancedRendererMgr, model::ModelMgr, transform::TransformMgr},
+    renderer::{
+        model::{self, ModelVertex},
+        render_state::{self, RenderState},
+    },
+};
 
 const MAX_INSTANCE_COUNT: usize = 128;
 /// Maximum simultaneous collisions per instance.
@@ -11,6 +18,7 @@ const MAX_COLLISIONS: usize = 4;
 pub struct ColliderMgr {
     bounding_box_min: Vec<Point3<f32>>,
     bounding_box_max: Vec<Point3<f32>>,
+    should_render_bounding_box: Vec<bool>,
 
     collider_type: Vec<ColliderType>,
 
@@ -25,6 +33,8 @@ pub struct ColliderMgr {
     // References
     transform_i: Vec<usize>,
     model_i: Vec<Option<usize>>,
+    bounding_box_model_i: Vec<usize>,
+    bounding_box_mesh_renderer_i: Vec<usize>,
 }
 
 impl ColliderMgr {
@@ -40,45 +50,69 @@ impl ColliderMgr {
 
             colliding_indices: Vec::with_capacity(MAX_INSTANCE_COUNT),
 
+            should_render_bounding_box: Vec::with_capacity(MAX_INSTANCE_COUNT),
+
+            bounding_box_model_i: Vec::with_capacity(MAX_INSTANCE_COUNT),
+            bounding_box_mesh_renderer_i: Vec::with_capacity(MAX_INSTANCE_COUNT),
             transform_i: Vec::with_capacity(MAX_INSTANCE_COUNT),
             model_i: Vec::with_capacity(MAX_INSTANCE_COUNT),
         }
     }
 
-    pub fn add_from_model(
+    pub async fn add_from_model(
         &mut self,
         model_i: usize,
         transform_i: usize,
         collider_type: ColliderType,
         is_collision_source: bool,
         is_collision_target: bool,
-        model_mgr: &ModelMgr,
+        render_bounding_box: bool,
+        render_state: &RenderState,
+        transform_mgr: &TransformMgr,
+        model_mgr: &mut ModelMgr,
+        mesh_renderer_mgr: &mut MeshInstancedRendererMgr,
     ) -> Result<usize> {
         let model = &model_mgr.model[model_i];
 
-        let bounding_box_min = Point3 {
+        let bbox_min = Point3 {
             x: model.min_x,
             y: model.min_y,
             z: model.min_z,
         };
-        let bounding_box_max = Point3 {
+        let bbox_max = Point3 {
             x: model.max_x,
             y: model.max_y,
             z: model.max_z,
         };
 
-        self.bounding_box_min.push(bounding_box_min);
-        self.bounding_box_max.push(bounding_box_max);
+        self.bounding_box_min.push(bbox_min);
+        self.bounding_box_max.push(bbox_max);
 
         self.collider_type.push(collider_type);
 
         self.is_collision_source.push(is_collision_source);
         self.is_collision_target.push(is_collision_target);
 
+        self.should_render_bounding_box.push(render_bounding_box);
+
         self.colliding_indices.push([-1; MAX_COLLISIONS]);
 
         self.transform_i.push(transform_i);
         self.model_i.push(Some(model_i));
+
+        let position = transform_mgr.position[transform_i];
+        let rotation = transform_mgr.rotation[transform_i];
+        let bbox_model = self
+            .create_bounding_box_model(&bbox_min, &bbox_max, &render_state, mesh_renderer_mgr)
+            .await;
+        let bbox_model_i = model_mgr.add(
+            bbox_model,
+            format!("Collider bbox {}", self.len() - 1).as_str(),
+        );
+        let bbox_mesh_renderer_i =
+            mesh_renderer_mgr.add(&render_state, bbox_model_i, position.to_vec(), rotation);
+        self.bounding_box_model_i.push(bbox_model_i);
+        self.bounding_box_mesh_renderer_i.push(bbox_mesh_renderer_i);
 
         let index = self.len() - 1;
 
@@ -235,6 +269,118 @@ impl ColliderMgr {
     pub fn len(&self) -> usize {
         self.bounding_box_min.len()
     }
+
+    pub async fn create_bounding_box_model(
+        &self,
+        bbox_min: &Point3<f32>,
+        bbox_max: &Point3<f32>,
+        render_state: &RenderState,
+        mesh_renderer_mgr: &mut MeshInstancedRendererMgr,
+    ) -> model::Model {
+        let positions: [Vec<f32>; 8] = [
+            vec![bbox_min[0], bbox_min[1], bbox_min[2]],
+            vec![bbox_min[0], bbox_min[1], bbox_max[2]],
+            vec![bbox_min[0], bbox_max[1], bbox_min[0]],
+            vec![bbox_min[0], bbox_max[1], bbox_max[2]],
+            vec![bbox_max[0], bbox_min[1], bbox_min[2]],
+            vec![bbox_max[0], bbox_min[1], bbox_max[2]],
+            vec![bbox_max[0], bbox_max[1], bbox_min[2]],
+            vec![bbox_max[0], bbox_max[1], bbox_max[2]],
+        ];
+
+        let vertices = (0..positions.len())
+            .map(|i| model::ModelVertex {
+                position: [positions[i][0], positions[i][1], positions[i][2]],
+                tex_coords: [0.0; 2],
+                normal: [0.0; 3],
+                tangent: [0.0; 3],
+                bitangent: [0.0; 3],
+            })
+            .collect::<Vec<ModelVertex>>();
+
+        let indices: Vec<u32> = vec![
+            0, 1, 2, 1, 2, 3, 0, 4, 5, 0, 1, 5, 4, 5, 6, 5, 6, 7, 2, 6, 7, 2, 3, 7, 0, 2, 4, 0, 2,
+            6, 1, 3, 7, 1, 3, 5,
+        ];
+
+        let vertex_buffer =
+            render_state
+                .device
+                .create_buffer_init(&wgpu::util::BufferInitDescriptor {
+                    label: Some(&format!("Collider bbox vertex buffer")),
+                    contents: bytemuck::cast_slice(&vertices),
+                    usage: wgpu::BufferUsages::VERTEX,
+                });
+        let index_buffer =
+            render_state
+                .device
+                .create_buffer_init(&wgpu::util::BufferInitDescriptor {
+                    label: Some(&format!("Collider bbox index buffer")),
+                    contents: bytemuck::cast_slice(&indices),
+                    usage: wgpu::BufferUsages::INDEX,
+                });
+
+        let mesh = model::Mesh {
+            name: String::from("Collider bounding box"),
+            vertex_buffer,
+            index_buffer,
+            num_elements: indices.len() as u32,
+            material: 0,
+
+            vertices,
+            is_wireframe: true,
+
+            min_x: bbox_min[0],
+            min_y: bbox_min[1],
+            min_z: bbox_min[2],
+            max_x: bbox_max[0],
+            max_y: bbox_max[1],
+            max_z: bbox_max[2],
+        };
+
+        model::Model::new_from_single_mesh(
+            mesh,
+            render_state,
+            &mesh_renderer_mgr.texture_bind_group_layout,
+        )
+        .await
+    }
+
+    // pub fn render(
+    //     &mut self,
+    //     render_state: &RenderState,
+    //     encoder: &wgpu::CommandEncoder,
+    //     view: &wgpu::TextureView,
+    // ) -> anyhow::Result<(), wgpu::SurfaceError> {
+    //     let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+    //         label: Some("Collider bounding box render pass"),
+    //         color_attachments: &[Some(wgpu::RenderPassColorAttachment {
+    //             view,
+    //             resolve_target: None,
+    //             ops: wgpu::Operations {
+    //                 load: wgpu::LoadOp::Load,
+    //                 store: wgpu::StoreOp::Store,
+    //             },
+    //         })],
+    //         depth_stencil_attachment: Some(wgpu::RenderPassDepthStencilAttachment {
+    //             view: &render_state.depth_texture.view,
+    //             depth_ops: Some(wgpu::Operations {
+    //                 load: wgpu::LoadOp::Clear(1.0),
+    //                 store: wgpu::StoreOp::Store,
+    //             }),
+    //             stencil_ops: None,
+    //         }),
+    //         timestamp_writes: None,
+    //         occlusion_query_set: None,
+    //     });
+
+    //     render_pass.set_pipeline(&self.render_pipeline);
+    //     render_pass.set_vertex_buffer(0, self.vertex_buffer.slice(..));
+    //     render_pass.set_bind_group(0, &render_state.camera_bind_group, &[]);
+    //     render_pass.draw(0..AXIS_VERTICES.len() as u32, 0..1);
+
+    //     Ok(())
+    // }
 }
 
 pub enum ColliderType {

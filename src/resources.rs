@@ -233,6 +233,7 @@ pub async fn load_model_obj(
                 material: m.mesh.material_id.unwrap_or(0),
 
                 vertices,
+                is_wireframe: false,
 
                 min_x,
                 min_y,
